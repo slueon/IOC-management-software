@@ -1,0 +1,351 @@
+<Window x:Class="IOC.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:viewmodels="clr-namespace:IOC.App.ViewModels"
+        mc:Ignorable="d"
+        Title="IOC Management Software - Trung Tâm Giám Sát Vận Hành &amp; Báo Lỗi Tập Trung" 
+        Height="780" Width="1240"
+        MinHeight="650" MinWidth="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="#121824"
+        TextElement.Foreground="#E2E8F0"
+        TextElement.FontFamily="Segoe UI">
+
+    <Window.DataContext>
+        <viewmodels:MainViewModel />
+    </Window.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- Header Bar -->
+            <RowDefinition Height="Auto" /> <!-- Top Active Alarm Banner -->
+            <RowDefinition Height="*" />    <!-- Main Dashboard Content -->
+            <RowDefinition Height="Auto" /> <!-- Bottom Test Panel -->
+        </Grid.RowDefinitions>
+
+        <!-- 1. HEADER BAR -->
+        <Border Grid.Row="0" Background="#1A2234" Padding="16,12" BorderBrush="#2D3748" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Logo & System Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#2B6CB0" CornerRadius="8" Padding="10,6" Margin="0,0,12,0">
+                        <TextBlock Text="IOC" FontWeight="Bold" FontSize="18" Foreground="White" />
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="TRUNG TÂM GIÁM SÁT VẬN HÀNH &amp; CẢNH BÁO SỰ CỐ" FontWeight="Bold" FontSize="15" Foreground="White" />
+                        <TextBlock Text="Smart Building Unified Monitoring System (Offline LAN 100%)" FontSize="11" Foreground="#A0AEC0" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Status Counters (Center) -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Background="#242E42" CornerRadius="6" Padding="12,6" Margin="6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Tổng thiết bị: " Foreground="#A0AEC0" FontSize="12" />
+                            <TextBlock Text="{Binding TotalDevices}" FontWeight="Bold" Foreground="White" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#1C3D2E" CornerRadius="6" Padding="12,6" Margin="6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="● Online: " Foreground="#48BB78" FontSize="12" />
+                            <TextBlock Text="{Binding OnlineDevices}" FontWeight="Bold" Foreground="#48BB78" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#4A1D24" CornerRadius="6" Padding="12,6" Margin="6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="● Offline: " Foreground="#F56565" FontSize="12" />
+                            <TextBlock Text="{Binding OfflineDevices}" FontWeight="Bold" Foreground="#F56565" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#4A2D1A" CornerRadius="6" Padding="12,6" Margin="6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠ Đang lỗi: " Foreground="#ED8936" FontSize="12" />
+                            <TextBlock Text="{Binding ActiveAlarmCount}" FontWeight="Bold" Foreground="#ED8936" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Clock & Mute Audio Button (Right) -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CurrentTime}" Foreground="#CBD5E0" FontSize="13" VerticalAlignment="Center" Margin="0,0,16,0" />
+                    
+                    <Button Command="{Binding ToggleMuteCommand}" 
+                            Padding="12,6" Height="36"
+                            Background="#2D3748" BorderBrush="#4A5568" Foreground="White"
+                            ToolTip="Bật/Tắt âm thanh còi báo động">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="{Binding IsAudioMuted, Converter={x:Null}}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding IsAudioMuted, StringFormat='{}Loa: {0}'}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. TOP ACTIVE ALARM BANNER -->
+        <Border Grid.Row="1" Background="#9B2C2C" Padding="16,10" BorderBrush="#E53E3E" BorderThickness="0,0,0,2"
+                Visibility="{Binding HasActiveAlarm, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                    <TextBlock Text="🚨 BÁO ĐỘNG KHẨN CẤP:" FontWeight="Bold" FontSize="14" Foreground="#FED7D7" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TopActiveAlarm.Title}" FontWeight="Bold" FontSize="13" Foreground="White" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Foreground="#FEB2B2" FontSize="11">
+                        <Run Text="Vị trí: " />
+                        <Run Text="{Binding TopActiveAlarm.Location}" FontWeight="SemiBold" />
+                        <Run Text=" | Thiết bị: " />
+                        <Run Text="{Binding TopActiveAlarm.DeviceName}" FontWeight="SemiBold" />
+                        <Run Text=" | Lúc: " />
+                        <Run Text="{Binding TopActiveAlarm.Timestamp, StringFormat='{}{0:HH:mm:ss dd/MM}'}" />
+                    </TextBlock>
+                </StackPanel>
+
+                <Button Grid.Column="2" Command="{Binding AcknowledgeTopAlarmCommand}"
+                        Background="#FFF5F5" Foreground="#9B2C2C" FontWeight="Bold" Height="36" Padding="16,0"
+                        BorderThickness="0" Cursor="Hand" Margin="12,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="✔ XÁC NHẬN SỰ CỐ (ACK)" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- 3. MAIN DASHBOARD CONTENT -->
+        <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0" Margin="12,8">
+            <!-- TAB 1: CẢNH BÁO ĐANG DIỄN RA -->
+            <TabItem Header="🚨 CẢNH BÁO ĐANG DIỄN RA" FontSize="13" FontWeight="SemiBold">
+                <Grid Margin="0,10,0,0">
+                    <DataGrid ItemsSource="{Binding ActiveAlarms}" AutoGenerateColumns="False" 
+                              CanUserAddRows="False" IsReadOnly="True"
+                              Background="#1A2234" RowBackground="#161E2E" AlternatingRowBackground="#1A2234"
+                              Foreground="#E2E8F0" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#2D3748"
+                              BorderThickness="1" BorderBrush="#2D3748" HeadersVisibility="Column">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#242E42" />
+                                <Setter Property="Foreground" Value="#CBD5E0" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Padding" Value="10,8" />
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+
+                        <DataGrid.Columns>
+                            <!-- Mức độ -->
+                            <DataGridTemplateColumn Header="Mức Độ" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" Margin="4">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                                                            <Setter Property="Background" Value="#E53E3E" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Severity}" Value="Major">
+                                                            <Setter Property="Background" Value="#DD6B20" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Severity}" Value="Minor">
+                                                            <Setter Property="Background" Value="#D69E2E" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Severity}" Value="Info">
+                                                            <Setter Property="Background" Value="#3182CE" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Severity}" FontWeight="Bold" FontSize="11" Foreground="White" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Thời gian -->
+                            <DataGridTextColumn Header="Thời Gian" Binding="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss dd/MM}'}" Width="120" />
+
+                            <!-- Phân hệ -->
+                            <DataGridTextColumn Header="Phân Hệ" Binding="{Binding SubSystem}" Width="110" />
+
+                            <!-- Tên thiết bị -->
+                            <DataGridTextColumn Header="Thiết Bị" Binding="{Binding DeviceName}" Width="180" />
+
+                            <!-- Vị trí -->
+                            <DataGridTextColumn Header="Vị Trí" Binding="{Binding Location}" Width="180" />
+
+                            <!-- Nội dung sự cố -->
+                            <DataGridTextColumn Header="Chi Tiết Lỗi" Binding="{Binding Title}" Width="*" />
+
+                            <!-- Trạng thái -->
+                            <DataGridTemplateColumn Header="Trạng Thái" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Status}" FontWeight="SemiBold">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Active">
+                                                            <Setter Property="Foreground" Value="#FC8181" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Acknowledged">
+                                                            <Setter Property="Foreground" Value="#F6E05E" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Thao tác -->
+                            <DataGridTemplateColumn Header="Thao Tác" Width="170">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Xác nhận" 
+                                                    Command="{Binding DataContext.AcknowledgeAlarmCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="#2B6CB0" Foreground="White" FontSize="11" Height="26" Padding="8,2" Margin="0,0,6,0" />
+                                            
+                                            <Button Content="Đã sửa xong" 
+                                                    Command="{Binding DataContext.ResolveAlarmCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="#2F855A" Foreground="White" FontSize="11" Height="26" Padding="8,2" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: TOÀN BỘ LỊCH SỬ SỰ CỐ -->
+            <TabItem Header="📋 LỊCH SỬ SỰ CỐ (LOG)" FontSize="13" FontWeight="SemiBold">
+                <Grid Margin="0,10,0,0">
+                    <DataGrid ItemsSource="{Binding RecentAlarms}" AutoGenerateColumns="False" 
+                              CanUserAddRows="False" IsReadOnly="True"
+                              Background="#1A2234" RowBackground="#161E2E" AlternatingRowBackground="#1A2234"
+                              Foreground="#E2E8F0" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#2D3748"
+                              BorderThickness="1" BorderBrush="#2D3748">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#242E42" />
+                                <Setter Property="Foreground" Value="#CBD5E0" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Padding" Value="10,8" />
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mức Độ" Binding="{Binding Severity}" Width="90" />
+                            <DataGridTextColumn Header="Thời Gian" Binding="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss dd/MM}'}" Width="120" />
+                            <DataGridTextColumn Header="Phân Hệ" Binding="{Binding SubSystem}" Width="110" />
+                            <DataGridTextColumn Header="Thiết Bị" Binding="{Binding DeviceName}" Width="180" />
+                            <DataGridTextColumn Header="Vị Trí" Binding="{Binding Location}" Width="160" />
+                            <DataGridTextColumn Header="Nội Dung" Binding="{Binding Title}" Width="*" />
+                            <DataGridTextColumn Header="Trạng Thái" Binding="{Binding Status}" Width="100" />
+                            <DataGridTextColumn Header="Người Xác Nhận" Binding="{Binding AcknowledgedBy}" Width="120" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 3: DANH SÁCH THIẾT BỊ GIÁM SÁT -->
+            <TabItem Header="🖥 DANH BẠ THIẾT BỊ HẠ TẦNG" FontSize="13" FontWeight="SemiBold">
+                <Grid Margin="0,10,0,0">
+                    <DataGrid ItemsSource="{Binding Devices}" AutoGenerateColumns="False" 
+                              CanUserAddRows="False" IsReadOnly="True"
+                              Background="#1A2234" RowBackground="#161E2E" AlternatingRowBackground="#1A2234"
+                              Foreground="#E2E8F0" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#2D3748"
+                              BorderThickness="1" BorderBrush="#2D3748">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#242E42" />
+                                <Setter Property="Foreground" Value="#CBD5E0" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Padding" Value="10,8" />
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Tên Thiết Bị" Binding="{Binding Name}" Width="240" />
+                            <DataGridTextColumn Header="Phân Hệ" Binding="{Binding SubSystem}" Width="130" />
+                            <DataGridTextColumn Header="Địa Chỉ IP" Binding="{Binding IpAddress}" Width="130" />
+                            <DataGridTextColumn Header="Cổng" Binding="{Binding Port}" Width="80" />
+                            <DataGridTextColumn Header="Vị Trí Lắp Đặt" Binding="{Binding Location}" Width="200" />
+                            
+                            <!-- Trạng thái Online / Offline -->
+                            <DataGridTemplateColumn Header="Trạng Thái" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Left" Margin="4">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Online">
+                                                            <Setter Property="Background" Value="#2F855A" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Offline">
+                                                            <Setter Property="Background" Value="#C53030" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Status}" Value="Warning">
+                                                            <Setter Property="Background" Value="#DD6B20" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Status}" FontWeight="Bold" FontSize="11" Foreground="White" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Lần Thấy Cuối" Binding="{Binding LastSeen, StringFormat='{}{0:HH:mm:ss}'}" Width="110" />
+                            <DataGridTextColumn Header="Ghi Chú Lỗi" Binding="{Binding LastError}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- 4. BOTTOM TEST / SIMULATION PANEL -->
+        <Border Grid.Row="3" Background="#161E2E" Padding="12,10" BorderBrush="#2D3748" BorderThickness="0,1,0,0">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="🛠 BẢNG THỬ NGHIỆM SỰ CỐ NHANH:" FontWeight="Bold" FontSize="11" Foreground="#A0AEC0" VerticalAlignment="Center" Margin="0,0,12,0" />
+                
+                <Button Command="{Binding SimulateFireAlarmCommand}" Content="🔥 Báo Cháy (PCCC)" 
+                        Background="#9B2C2C" Foreground="White" FontSize="11" Height="28" Padding="10,0" Margin="4,0" ToolTip="Kích hoạt sự cố Nguy cấp (Critical) từ Tủ PCCC Hochiki" />
+
+                <Button Command="{Binding SimulateSwitchDownCommand}" Content="🔌 Rớt Switch Core (LAN)" 
+                        Background="#9B2C2C" Foreground="White" FontSize="11" Height="28" Padding="10,0" Margin="4,0" ToolTip="Kích hoạt Trap SNMP cổng mạng Core Switch mất kết nối" />
+
+                <Button Command="{Binding SimulatePaFaultCommand}" Content="📢 Đứt Dây Loa (PA)" 
+                        Background="#C05621" Foreground="White" FontSize="11" Height="28" Padding="10,0" Margin="4,0" ToolTip="Kích hoạt sự cố đứt dây loa Tủ PA Bosch" />
+
+                <Button Command="{Binding SimulateChillerFaultCommand}" Content="❄️ Quá Nhiệt Chiller (BMS)" 
+                        Background="#C05621" Foreground="White" FontSize="11" Height="28" Padding="10,0" Margin="4,0" ToolTip="Kích hoạt Modbus đọc nhiệt độ Chiller vượt ngưỡng" />
+
+                <Button Command="{Binding SimulateCameraLossCommand}" Content="📹 Mất Cam Sảnh (CCTV)" 
+                        Background="#B7791F" Foreground="White" FontSize="11" Height="28" Padding="10,0" Margin="4,0" ToolTip="Kích hoạt sự cố Camera sảnh rớt mạng" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
