@@ -14,6 +14,11 @@ namespace IOC.Core.Models
         public DeviceStatus Status { get; set; } = DeviceStatus.Online;
         public DateTime LastSeen { get; set; } = DateTime.Now;
         public string LastError { get; set; } = string.Empty;
+        public string MacAddress { get; set; } = string.Empty;
+        public string Manufacturer { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public DateTime InstallDate { get; set; } = DateTime.Now;
+        public string Notes { get; set; } = string.Empty;
     }
 
     public class AlarmEvent

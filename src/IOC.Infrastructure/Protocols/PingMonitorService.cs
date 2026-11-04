@@ -34,6 +34,12 @@ namespace IOC.Infrastructure.Protocols
             _devices[device.Id] = device;
         }
 
+        public void UnregisterDevice(string deviceId)
+        {
+            _devices.TryRemove(deviceId, out _);
+            _failureCounts.TryRemove(deviceId, out _);
+        }
+
         public void StartMonitoring(int intervalSeconds = 10)
         {
             StopMonitoring();

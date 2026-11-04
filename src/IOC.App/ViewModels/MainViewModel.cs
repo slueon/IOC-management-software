@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -12,6 +13,7 @@ using IOC.Core.Models;
 using IOC.Infrastructure.Database;
 using IOC.Infrastructure.Protocols;
 using IOC.Infrastructure.Services;
+using Microsoft.Win32;
 
 namespace IOC.App.ViewModels
 {
@@ -20,6 +22,7 @@ namespace IOC.App.ViewModels
         private readonly IDatabaseService _databaseService;
         private readonly IAlarmService _alarmService;
         private readonly IDeviceMonitorService _monitorService;
+        private readonly IDeviceImportExportService _importExportService;
         private readonly DispatcherTimer _clockTimer;
 
         [ObservableProperty]
@@ -46,15 +49,79 @@ namespace IOC.App.ViewModels
         [ObservableProperty]
         private int _activeAlarmCount;
 
+        // --- FILTER & SEARCH PROPERTIES ---
+        [ObservableProperty]
+        private string _searchDeviceKeyword = string.Empty;
+
+        [ObservableProperty]
+        private string _selectedSubSystemFilter = "Tất cả";
+
+        [ObservableProperty]
+        private string _selectedStatusFilter = "Tất cả";
+
+        // --- NEW DEVICE FORM PROPERTIES ---
+        [ObservableProperty]
+        private bool _isAddDeviceFormOpen;
+
+        [ObservableProperty]
+        private string _newDeviceName = string.Empty;
+
+        [ObservableProperty]
+        private SubSystemType _newDeviceSubSystem = SubSystemType.LanTel;
+
+        [ObservableProperty]
+        private string _newDeviceIp = "192.168.1.100";
+
+        [ObservableProperty]
+        private int _newDevicePort = 80;
+
+        [ObservableProperty]
+        private string _newDeviceLocation = string.Empty;
+
+        [ObservableProperty]
+        private string _newDeviceManufacturer = string.Empty;
+
+        [ObservableProperty]
+        private string _newDeviceModel = string.Empty;
+
+        // --- EDIT DEVICE PROPERTIES ---
+        [ObservableProperty]
+        private Device? _selectedDevice;
+
+        [ObservableProperty]
+        private string _statusMessage = "Hệ thống sẵn sàng giám sát 24/7.";
+
         public ObservableCollection<AlarmEvent> ActiveAlarms { get; } = new();
         public ObservableCollection<AlarmEvent> RecentAlarms { get; } = new();
         public ObservableCollection<Device> Devices { get; } = new();
+        public ObservableCollection<Device> FilteredDevices { get; } = new();
+
+        public ObservableCollection<string> SubSystemFilterOptions { get; } = new()
+        {
+            "Tất cả", "LanTel", "PublicAddress", "CCTV", "BMS", "AccessControl", "FireAlarm"
+        };
+
+        public ObservableCollection<string> StatusFilterOptions { get; } = new()
+        {
+            "Tất cả", "Online", "Offline"
+        };
+
+        public ObservableCollection<SubSystemType> SubSystemTypes { get; } = new()
+        {
+            SubSystemType.LanTel,
+            SubSystemType.PublicAddress,
+            SubSystemType.CCTV,
+            SubSystemType.BMS,
+            SubSystemType.AccessControl,
+            SubSystemType.FireAlarm
+        };
 
         public MainViewModel()
         {
             _databaseService = new SqliteDatabaseService();
             _alarmService = new AlarmManagerService(_databaseService);
             _monitorService = new PingMonitorService(_databaseService, _alarmService);
+            _importExportService = new DeviceImportExportService();
 
             _alarmService.AlarmTriggered += OnAlarmTriggered;
             _alarmService.AlarmUpdated += OnAlarmUpdated;
@@ -80,6 +147,7 @@ namespace IOC.App.ViewModels
                     Devices.Add(d);
                     _monitorService.RegisterDevice(d);
                 }
+                ApplyDeviceFilter();
                 UpdateCounters();
             });
 
@@ -101,6 +169,7 @@ namespace IOC.App.ViewModels
 
             // Start monitoring background
             _monitorService.StartMonitoring(15);
+            StatusMessage = $"Đã nạp {Devices.Count} thiết bị. Bắt đầu chu trình giám sát ngầm.";
         }
 
         private void OnAlarmTriggered(object? sender, AlarmEvent alarm)
@@ -114,6 +183,7 @@ namespace IOC.App.ViewModels
                     RecentAlarms.Insert(0, alarm);
                 }
                 UpdateTopAlarm();
+                StatusMessage = $"[CẢNH BÁO MỚI] {alarm.Severity}: {alarm.Title}";
             });
         }
 
@@ -153,6 +223,7 @@ namespace IOC.App.ViewModels
                     var index = Devices.IndexOf(d);
                     Devices[index] = device;
                 }
+                ApplyDeviceFilter();
                 UpdateCounters();
             });
         }
@@ -171,11 +242,49 @@ namespace IOC.App.ViewModels
             OfflineDevices = Devices.Count(d => d.Status == DeviceStatus.Offline);
         }
 
+        partial void OnSearchDeviceKeywordChanged(string value) => ApplyDeviceFilter();
+        partial void OnSelectedSubSystemFilterChanged(string value) => ApplyDeviceFilter();
+        partial void OnSelectedStatusFilterChanged(string value) => ApplyDeviceFilter();
+
+        private void ApplyDeviceFilter()
+        {
+            var query = Devices.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(SearchDeviceKeyword))
+            {
+                var kw = SearchDeviceKeyword.Trim().ToLowerInvariant();
+                query = query.Where(d => 
+                    d.Name.ToLowerInvariant().Contains(kw) ||
+                    d.IpAddress.Contains(kw) ||
+                    d.Location.ToLowerInvariant().Contains(kw) ||
+                    d.Manufacturer.ToLowerInvariant().Contains(kw));
+            }
+
+            if (SelectedSubSystemFilter != "Tất cả" && Enum.TryParse<SubSystemType>(SelectedSubSystemFilter, out var sub))
+            {
+                query = query.Where(d => d.SubSystem == sub);
+            }
+
+            if (SelectedStatusFilter != "Tất cả" && Enum.TryParse<DeviceStatus>(SelectedStatusFilter, out var st))
+            {
+                query = query.Where(d => d.Status == st);
+            }
+
+            FilteredDevices.Clear();
+            foreach (var d in query)
+            {
+                FilteredDevices.Add(d);
+            }
+        }
+
+        // --- ALARM COMMANDS ---
+
         [RelayCommand]
         public async Task AcknowledgeAlarmAsync(AlarmEvent? alarm)
         {
             if (alarm == null) return;
             await _alarmService.AcknowledgeAlarmAsync(alarm.Id, "Kỹ sư trực ban");
+            StatusMessage = $"Đã xác nhận sự cố: {alarm.DeviceName}";
         }
 
         [RelayCommand]
@@ -184,6 +293,7 @@ namespace IOC.App.ViewModels
             if (TopActiveAlarm != null)
             {
                 await _alarmService.AcknowledgeAlarmAsync(TopActiveAlarm.Id, "Kỹ sư trực ban");
+                StatusMessage = $"Đã xác nhận sự cố khẩn cấp: {TopActiveAlarm.DeviceName}";
             }
         }
 
@@ -192,6 +302,7 @@ namespace IOC.App.ViewModels
         {
             if (alarm == null) return;
             await _alarmService.ResolveAlarmAsync(alarm.Id);
+            StatusMessage = $"Đã khắc phục xong sự cố: {alarm.DeviceName}";
         }
 
         [RelayCommand]
@@ -199,6 +310,159 @@ namespace IOC.App.ViewModels
         {
             _alarmService.ToggleMute();
             IsAudioMuted = _alarmService.IsAudioMuted;
+            StatusMessage = IsAudioMuted ? "Đã tắt âm thanh còi báo." : "Đã bật âm thanh còi báo.";
+        }
+
+        // --- DEVICE MANAGEMENT COMMANDS (MODULE 6) ---
+
+        [RelayCommand]
+        public void OpenAddDeviceForm()
+        {
+            NewDeviceName = string.Empty;
+            NewDeviceIp = "192.168.1.100";
+            NewDevicePort = 80;
+            NewDeviceLocation = string.Empty;
+            NewDeviceManufacturer = string.Empty;
+            NewDeviceModel = string.Empty;
+            IsAddDeviceFormOpen = true;
+        }
+
+        [RelayCommand]
+        public void CloseAddDeviceForm()
+        {
+            IsAddDeviceFormOpen = false;
+        }
+
+        [RelayCommand]
+        public async Task SaveNewDeviceAsync()
+        {
+            if (string.IsNullOrWhiteSpace(NewDeviceName) || string.IsNullOrWhiteSpace(NewDeviceIp))
+            {
+                MessageBox.Show("Vui lòng nhập đầy đủ Tên thiết bị và Địa chỉ IP.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var dev = new Device
+            {
+                Name = NewDeviceName.Trim(),
+                SubSystem = NewDeviceSubSystem,
+                IpAddress = NewDeviceIp.Trim(),
+                Port = NewDevicePort,
+                Location = NewDeviceLocation.Trim(),
+                Manufacturer = NewDeviceManufacturer.Trim(),
+                Model = NewDeviceModel.Trim(),
+                Status = DeviceStatus.Online,
+                LastSeen = DateTime.Now
+            };
+
+            await _databaseService.SaveDeviceAsync(dev);
+            _monitorService.RegisterDevice(dev);
+
+            Devices.Add(dev);
+            ApplyDeviceFilter();
+            UpdateCounters();
+
+            IsAddDeviceFormOpen = false;
+            StatusMessage = $"Đã thêm mới thiết bị '{dev.Name}' vào danh bạ giám sát.";
+        }
+
+        [RelayCommand]
+        public async Task DeleteDeviceAsync(Device? device)
+        {
+            if (device == null) return;
+
+            var confirm = MessageBox.Show($"Bạn có chắc chắn muốn xóa thiết bị '{device.Name}' ({device.IpAddress}) khỏi hệ thống giám sát?",
+                "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm == MessageBoxResult.Yes)
+            {
+                await _databaseService.DeleteDeviceAsync(device.Id);
+                _monitorService.UnregisterDevice(device.Id);
+
+                Devices.Remove(device);
+                ApplyDeviceFilter();
+                UpdateCounters();
+
+                StatusMessage = $"Đã xóa thiết bị '{device.Name}' khỏi danh bạ.";
+            }
+        }
+
+        [RelayCommand]
+        public async Task ExportDevicesAsync()
+        {
+            try
+            {
+                var sfd = new SaveFileDialog
+                {
+                    Filter = "Tệp CSV (Excel) (*.csv)|*.csv",
+                    FileName = $"Danh_ba_thiet_bi_{DateTime.Now:yyyyMMdd_HHmm}.csv",
+                    Title = "Xuất Danh Bạ Thiết Bị Ra File CSV"
+                };
+
+                if (sfd.ShowDialog() == true)
+                {
+                    await _importExportService.ExportToFileAsync(Devices, sfd.FileName);
+                    StatusMessage = $"Đã xuất {Devices.Count} thiết bị ra tệp: {Path.GetFileName(sfd.FileName)}";
+                    MessageBox.Show($"Xuất danh bạ thành công!\nĐường dẫn: {sfd.FileName}", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi xuất danh bạ: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        [RelayCommand]
+        public async Task ImportDevicesAsync()
+        {
+            try
+            {
+                var ofd = new OpenFileDialog
+                {
+                    Filter = "Tệp CSV (*.csv)|*.csv|Tất cả tệp (*.*)|*.*",
+                    Title = "Chọn Tệp CSV Chứa Danh Sách Thiết Bị"
+                };
+
+                if (ofd.ShowDialog() == true)
+                {
+                    var (imported, errors) = await _importExportService.ImportFromFileAsync(ofd.FileName);
+
+                    if (imported.Count > 0)
+                    {
+                        foreach (var d in imported)
+                        {
+                            await _databaseService.SaveDeviceAsync(d);
+                            _monitorService.RegisterDevice(d);
+
+                            var existing = Devices.FirstOrDefault(x => x.IpAddress == d.IpAddress);
+                            if (existing == null)
+                            {
+                                Devices.Add(d);
+                            }
+                        }
+
+                        ApplyDeviceFilter();
+                        UpdateCounters();
+
+                        string msg = $"Đã nhập thành công {imported.Count} thiết bị vào hệ thống.";
+                        if (errors.Count > 0)
+                        {
+                            msg += $"\nCó {errors.Count} cảnh báo lỗi dòng:\n" + string.Join("\n", errors.Take(5));
+                        }
+                        MessageBox.Show(msg, "Kết quả nhập dữ liệu", MessageBoxButton.OK, MessageBoxImage.Information);
+                        StatusMessage = $"Đã nhập thành công {imported.Count} thiết bị.";
+                    }
+                    else
+                    {
+                        string errs = errors.Count > 0 ? string.Join("\n", errors) : "Không tìm thấy dữ liệu hợp lệ.";
+                        MessageBox.Show($"Không thể nhập dữ liệu:\n{errs}", "Lỗi nhập dữ liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi nhập danh bạ: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // --- SIMULATION COMMANDS FOR TESTING ---

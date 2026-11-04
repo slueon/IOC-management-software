@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using IOC.Core.Enums;
 using IOC.Core.Models;
 
 namespace IOC.Core.Interfaces
@@ -27,8 +28,11 @@ namespace IOC.Core.Interfaces
         Task UpdateAlarmAsync(AlarmEvent alarm);
         Task<List<AlarmEvent>> GetRecentAlarmsAsync(int limit = 100);
         Task<List<Device>> GetAllDevicesAsync();
+        Task<Device?> GetDeviceByIdAsync(string id);
         Task SaveDeviceAsync(Device device);
-        Task UpdateDeviceStatusAsync(string deviceId, Enums.DeviceStatus status, string lastError);
+        Task DeleteDeviceAsync(string id);
+        Task UpdateDeviceStatusAsync(string deviceId, DeviceStatus status, string lastError);
+        Task<List<Device>> SearchDevicesAsync(string? keyword, SubSystemType? subSystem, DeviceStatus? status);
     }
 
     public interface IDeviceMonitorService
@@ -39,6 +43,15 @@ namespace IOC.Core.Interfaces
         void StartMonitoring(int intervalSeconds = 10);
         void StopMonitoring();
         void RegisterDevice(Device device);
+        void UnregisterDevice(string deviceId);
         Task PingCheckDeviceAsync(Device device);
+    }
+
+    public interface IDeviceImportExportService
+    {
+        string ExportToCsv(IEnumerable<Device> devices);
+        Task ExportToFileAsync(IEnumerable<Device> devices, string filePath);
+        List<Device> ImportFromCsv(string csvContent, out List<string> errors);
+        Task<(List<Device> Devices, List<string> Errors)> ImportFromFileAsync(string filePath);
     }
 }
