@@ -24,6 +24,7 @@ namespace IOC.App.ViewModels
         private readonly IDeviceMonitorService _monitorService;
         private readonly IDeviceImportExportService _importExportService;
         private readonly DispatcherTimer _clockTimer;
+        private readonly DispatcherTimer _telemetryJitterTimer;
 
         [ObservableProperty]
         private string _currentTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
@@ -49,6 +50,22 @@ namespace IOC.App.ViewModels
         [ObservableProperty]
         private int _activeAlarmCount;
 
+        [ObservableProperty]
+        private double _overallUptimePercent = 99.9;
+
+        [ObservableProperty]
+        private double _averageLatencyMs = 1.4;
+
+        [ObservableProperty]
+        private string _systemHealthStatus = "TẤT CẢ PHÂN HỆ HOẠT ĐỘNG ỔN ĐỊNH";
+
+        [ObservableProperty]
+        private string _systemHealthColor = "#48BB78";
+
+        // --- SELECTED TAB ---
+        [ObservableProperty]
+        private int _selectedTabIndex = 0;
+
         // --- FILTER & SEARCH PROPERTIES ---
         [ObservableProperty]
         private string _searchDeviceKeyword = string.Empty;
@@ -58,6 +75,9 @@ namespace IOC.App.ViewModels
 
         [ObservableProperty]
         private string _selectedStatusFilter = "Tất cả";
+
+        [ObservableProperty]
+        private string _selectedFloorFilter = "Tất cả";
 
         // --- NEW DEVICE FORM PROPERTIES ---
         [ObservableProperty]
@@ -84,17 +104,30 @@ namespace IOC.App.ViewModels
         [ObservableProperty]
         private string _newDeviceModel = string.Empty;
 
+        [ObservableProperty]
+        private string _newDeviceProtocol = "ICMP/Ping";
+
+        [ObservableProperty]
+        private string _newDeviceFloor = "Tầng 1";
+
+        // --- INCIDENT DRILL MODAL (SIMULATION POPUP) ---
+        [ObservableProperty]
+        private bool _isDrillModalOpen;
+
         // --- EDIT DEVICE PROPERTIES ---
         [ObservableProperty]
         private Device? _selectedDevice;
 
         [ObservableProperty]
-        private string _statusMessage = "Hệ thống sẵn sàng giám sát 24/7.";
+        private string _statusMessage = "Đang thường trực giám sát 6 phân hệ thời gian thực 24/7.";
 
-        public ObservableCollection<AlarmEvent> ActiveAlarms { get; } = new();
-        public ObservableCollection<AlarmEvent> RecentAlarms { get; } = new();
+        // --- COLLECTIONS ---
+        public ObservableCollection<SubSystemOverview> SubSystemOverviews { get; } = new();
         public ObservableCollection<Device> Devices { get; } = new();
         public ObservableCollection<Device> FilteredDevices { get; } = new();
+        public ObservableCollection<Device> FloorDevices { get; } = new();
+        public ObservableCollection<AlarmEvent> ActiveAlarms { get; } = new();
+        public ObservableCollection<AlarmEvent> RecentAlarms { get; } = new();
 
         public ObservableCollection<string> SubSystemFilterOptions { get; } = new()
         {
@@ -104,6 +137,11 @@ namespace IOC.App.ViewModels
         public ObservableCollection<string> StatusFilterOptions { get; } = new()
         {
             "Tất cả", "Online", "Offline"
+        };
+
+        public ObservableCollection<string> FloorFilterOptions { get; } = new()
+        {
+            "Tất cả", "Tầng Hầm", "Tầng 1", "Tầng 2", "Tầng 3"
         };
 
         public ObservableCollection<SubSystemType> SubSystemTypes { get; } = new()
@@ -127,9 +165,15 @@ namespace IOC.App.ViewModels
             _alarmService.AlarmUpdated += OnAlarmUpdated;
             _monitorService.DeviceStatusChanged += OnDeviceStatusChanged;
 
+            // Real-time clock timer (1s)
             _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _clockTimer.Tick += (_, _) => CurrentTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
             _clockTimer.Start();
+
+            // Telemetry live animation/jitter timer (3s) to show active telemetry heartbeat
+            _telemetryJitterTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            _telemetryJitterTimer.Tick += (_, _) => RefreshTelemetryJitter();
+            _telemetryJitterTimer.Start();
 
             _ = InitializeAsync();
         }
@@ -148,7 +192,9 @@ namespace IOC.App.ViewModels
                     _monitorService.RegisterDevice(d);
                 }
                 ApplyDeviceFilter();
+                ApplyFloorFilter();
                 UpdateCounters();
+                UpdateSubsystemOverviews();
             });
 
             // Load recent alarms
@@ -165,11 +211,100 @@ namespace IOC.App.ViewModels
                     }
                 }
                 UpdateTopAlarm();
+                UpdateSubsystemOverviews();
             });
 
             // Start monitoring background
-            _monitorService.StartMonitoring(15);
-            StatusMessage = $"Đã nạp {Devices.Count} thiết bị. Bắt đầu chu trình giám sát ngầm.";
+            _monitorService.StartMonitoring(10);
+            StatusMessage = $"Hệ thống IOC đã kết nối {Devices.Count} thiết bị trên 6 phân hệ. Chu kỳ quét 10s.";
+        }
+
+        private void UpdateSubsystemOverviews()
+        {
+            var subs = new[]
+            {
+                new { Type = SubSystemType.FireAlarm, Name = "PCCC & BÁO CHÁY", Icon = "🔥", Desc = "Tủ trung tâm Hochiki & Cảm biến khói", Protocol = "Modbus RTU / Dry Contact", Key1 = "4/4 Vòng Loop Thông suốt", Key2 = "Nguồn AC 220V & Pin 27.2V", Uptime = 100.0 },
+                new { Type = SubSystemType.LanTel, Name = "MẠNG & VIỄN THÔNG", Icon = "🌐", Desc = "Cisco Core 3850, Switch tầng & IP-PBX", Protocol = "SNMP v2c / Ping / SIP", Key1 = "Độ trễ TB: 0.9 ms | CPU: 14%", Key2 = "Cổng Uplink: 1 Gbps Up", Uptime = 99.98 },
+                new { Type = SubSystemType.CCTV, Name = "CAMERA AN NINH (CCTV)", Icon = "📹", Desc = "NVR 64 kênh & Camera PTZ / Dome", Protocol = "ONVIF / RTSP Stream", Key1 = "100% Luồng hình ảnh Live", Key2 = "HDD RAID-5: 82% | 25 FPS", Uptime = 99.85 },
+                new { Type = SubSystemType.BMS, Name = "CƠ ĐIỆN TÒA NHÀ (BMS)", Icon = "❄️", Desc = "Chiller Trane, Đo điện & Cảm biến Server", Protocol = "BACnet IP / Modbus TCP", Key1 = "Chiller: Cấp 7.2°C - Hồi 12.1°C", Key2 = "Server: 21.8°C | 51.5% RH", Uptime = 99.92 },
+                new { Type = SubSystemType.PublicAddress, Name = "ÂM THANH THÔNG BÁO (PA)", Icon = "📢", Desc = "Bộ điều khiển Bosch & 8 Zone Loa", Protocol = "SNMP / Matrix Dry Contact", Key1 = "Ampli: 38°C (Bình thường)", Key2 = "8 Zone Loa: Chuẩn 100V", Uptime = 100.0 },
+                new { Type = SubSystemType.AccessControl, Name = "KIỂM SOÁT VÀO RA", Icon = "🚪", Desc = "ZKTeco C3-400 & Đầu đọc sinh trắc học", Protocol = "TCP/IP & Wiegand 34/26", Key1 = "Cửa: Khóa an toàn 100%", Key2 = "Ắc quy 12V: Tốt", Uptime = 99.95 }
+            };
+
+            SubSystemOverviews.Clear();
+
+            bool anyCritical = false;
+            foreach (var item in subs)
+            {
+                var devInSub = Devices.Where(d => d.SubSystem == item.Type).ToList();
+                int total = devInSub.Count;
+                int online = devInSub.Count(d => d.Status == DeviceStatus.Online);
+                bool hasAlarm = ActiveAlarms.Any(a => a.SubSystem == item.Type);
+
+                string statusText = "BÌNH THƯỜNG";
+                string statusColor = "#48BB78"; // Green
+
+                if (hasAlarm || online < total)
+                {
+                    var critical = ActiveAlarms.Any(a => a.SubSystem == item.Type && a.Severity == AlarmSeverity.Critical);
+                    if (critical)
+                    {
+                        statusText = "SỰ CỐ NGUY CẤP";
+                        statusColor = "#E53E3E"; // Red
+                        anyCritical = true;
+                    }
+                    else
+                    {
+                        statusText = "CẢNH BÁO";
+                        statusColor = "#ED8936"; // Amber
+                    }
+                }
+
+                SubSystemOverviews.Add(new SubSystemOverview
+                {
+                    SubSystem = item.Type,
+                    DisplayName = item.Name,
+                    Icon = item.Icon,
+                    Description = item.Desc,
+                    StatusText = statusText,
+                    StatusColor = statusColor,
+                    ProtocolInfo = item.Protocol,
+                    TotalDevices = total,
+                    OnlineDevices = online,
+                    PrimaryMetric = item.Key1,
+                    SecondaryMetric = item.Key2,
+                    Uptime = item.Uptime,
+                    HasAlert = hasAlarm || (online < total)
+                });
+            }
+
+            if (anyCritical)
+            {
+                SystemHealthStatus = "PHÁT HIỆN SỰ CỐ TẠI MỘT SỐ PHÂN HỆ - CẦN XỬ LÝ!";
+                SystemHealthColor = "#E53E3E";
+            }
+            else if (ActiveAlarms.Count > 0)
+            {
+                SystemHealthStatus = "HỆ THỐNG CÓ CẢNH BÁO CẦN LƯU Ý";
+                SystemHealthColor = "#ED8936";
+            }
+            else
+            {
+                SystemHealthStatus = "TẤT CẢ 6 PHÂN HỆ ĐANG HOẠT ĐỘNG ỔN ĐỊNH";
+                SystemHealthColor = "#48BB78";
+            }
+        }
+
+        private void RefreshTelemetryJitter()
+        {
+            if (Devices.Count == 0) return;
+
+            // Calculate live average latency
+            var onlineList = Devices.Where(d => d.Status == DeviceStatus.Online).ToList();
+            if (onlineList.Count > 0)
+            {
+                AverageLatencyMs = Math.Round(onlineList.Average(d => d.LatencyMs), 2);
+            }
         }
 
         private void OnAlarmTriggered(object? sender, AlarmEvent alarm)
@@ -183,6 +318,7 @@ namespace IOC.App.ViewModels
                     RecentAlarms.Insert(0, alarm);
                 }
                 UpdateTopAlarm();
+                UpdateSubsystemOverviews();
                 StatusMessage = $"[CẢNH BÁO MỚI] {alarm.Severity}: {alarm.Title}";
             });
         }
@@ -210,6 +346,7 @@ namespace IOC.App.ViewModels
                 }
 
                 UpdateTopAlarm();
+                UpdateSubsystemOverviews();
             });
         }
 
@@ -224,7 +361,9 @@ namespace IOC.App.ViewModels
                     Devices[index] = device;
                 }
                 ApplyDeviceFilter();
+                ApplyFloorFilter();
                 UpdateCounters();
+                UpdateSubsystemOverviews();
             });
         }
 
@@ -240,11 +379,13 @@ namespace IOC.App.ViewModels
             TotalDevices = Devices.Count;
             OnlineDevices = Devices.Count(d => d.Status == DeviceStatus.Online);
             OfflineDevices = Devices.Count(d => d.Status == DeviceStatus.Offline);
+            OverallUptimePercent = TotalDevices > 0 ? Math.Round((double)OnlineDevices / TotalDevices * 100, 1) : 100.0;
         }
 
         partial void OnSearchDeviceKeywordChanged(string value) => ApplyDeviceFilter();
         partial void OnSelectedSubSystemFilterChanged(string value) => ApplyDeviceFilter();
         partial void OnSelectedStatusFilterChanged(string value) => ApplyDeviceFilter();
+        partial void OnSelectedFloorFilterChanged(string value) => ApplyFloorFilter();
 
         private void ApplyDeviceFilter()
         {
@@ -275,6 +416,48 @@ namespace IOC.App.ViewModels
             {
                 FilteredDevices.Add(d);
             }
+        }
+
+        private void ApplyFloorFilter()
+        {
+            var query = Devices.AsEnumerable();
+            if (SelectedFloorFilter != "Tất cả")
+            {
+                query = query.Where(d => d.Floor == SelectedFloorFilter);
+            }
+
+            FloorDevices.Clear();
+            foreach (var d in query)
+            {
+                FloorDevices.Add(d);
+            }
+        }
+
+        // --- MONITORING COMMANDS ---
+
+        [RelayCommand]
+        public async Task ScanNowAsync()
+        {
+            StatusMessage = "Đang quét đo lường thời gian thực toàn bộ 6 phân hệ...";
+            await _monitorService.TriggerManualScanAsync();
+            UpdateCounters();
+            UpdateSubsystemOverviews();
+            StatusMessage = $"Quét hoàn tất lúc {DateTime.Now:HH:mm:ss}. Tất cả phân hệ đã cập nhật telemetry.";
+        }
+
+        [RelayCommand]
+        public async Task PingSingleDeviceAsync(Device? device)
+        {
+            if (device == null) return;
+            StatusMessage = $"Đang kiểm tra kết nối tới {device.Name} ({device.IpAddress})...";
+            await _monitorService.PingCheckDeviceAsync(device);
+            StatusMessage = $"Kiểm tra {device.Name} hoàn tất: {device.Status} ({device.LatencyMs} ms)";
+        }
+
+        [RelayCommand]
+        public void SwitchToTab(int tabIndex)
+        {
+            SelectedTabIndex = tabIndex;
         }
 
         // --- ALARM COMMANDS ---
@@ -313,6 +496,122 @@ namespace IOC.App.ViewModels
             StatusMessage = IsAudioMuted ? "Đã tắt âm thanh còi báo." : "Đã bật âm thanh còi báo.";
         }
 
+        // --- INCIDENT DRILL MODAL (SIMULATION POPUP) ---
+
+        [RelayCommand]
+        public void OpenDrillModal()
+        {
+            IsDrillModalOpen = true;
+        }
+
+        [RelayCommand]
+        public void CloseDrillModal()
+        {
+            IsDrillModalOpen = false;
+        }
+
+        [RelayCommand]
+        public async Task TriggerDrillScenarioAsync(string scenario)
+        {
+            switch (scenario)
+            {
+                case "Fire":
+                    await _alarmService.RaiseAlarmAsync(new AlarmEvent
+                    {
+                        DeviceName = "Tủ Báo Cháy Hochiki (FAS)",
+                        SubSystem = SubSystemType.FireAlarm,
+                        Severity = AlarmSeverity.Critical,
+                        Title = "BÁO ĐỘNG CHÁY: Đầu báo khói kích hoạt tại Tầng 2!",
+                        Description = "Khu vực Hành lang Đông Tầng 2 phát hiện nồng độ khói vượt ngưỡng khẩn cấp.",
+                        Location = "Hành Lang Đông - Tầng 2"
+                    });
+                    break;
+
+                case "Switch":
+                    var sw = Devices.FirstOrDefault(d => d.SubSystem == SubSystemType.LanTel);
+                    if (sw != null)
+                    {
+                        sw.Status = DeviceStatus.Offline;
+                        sw.LastError = "SNMP linkDown: Cổng Uplink bị ngắt";
+                        OnDeviceStatusChanged(this, sw);
+                    }
+                    await _alarmService.RaiseAlarmAsync(new AlarmEvent
+                    {
+                        DeviceName = "Switch Core Cisco 3850",
+                        SubSystem = SubSystemType.LanTel,
+                        Severity = AlarmSeverity.Critical,
+                        Title = "MẤT KẾT NỐI SWITCH CORE TRUNG TÂM",
+                        Description = "Giao thức SNMP gửi Trap linkDown: Cổng GigabitEthernet 1/0/1 bị ngắt kết nối.",
+                        Location = "Phòng Máy Chủ - Tầng 2"
+                    });
+                    break;
+
+                case "PA":
+                    await _alarmService.RaiseAlarmAsync(new AlarmEvent
+                    {
+                        DeviceName = "Tủ Âm Thanh PA Bosch",
+                        SubSystem = SubSystemType.PublicAddress,
+                        Severity = AlarmSeverity.Major,
+                        Title = "SỰ CỐ ĐỨT ĐƯỜNG DÂY LOA (PA LINE FAULT)",
+                        Description = "Phát hiện thay đổi trở kháng bất thường tại Vùng loa Tầng 3 (Zone 3). Đường dây loa có thể bị đứt.",
+                        Location = "Phòng Điều Hành - Tầng 1"
+                    });
+                    break;
+
+                case "Chiller":
+                    await _alarmService.RaiseAlarmAsync(new AlarmEvent
+                    {
+                        DeviceName = "BMS - Chiller Trane",
+                        SubSystem = SubSystemType.BMS,
+                        Severity = AlarmSeverity.Major,
+                        Title = "CẢNH BÁO BMS: Nhiệt độ nước lạnh Chiller vượt ngưỡng",
+                        Description = "Thanh ghi Modbus 40012 ghi nhận nhiệt độ nước cấp đạt 18.5°C (Ngưỡng an toàn: 7-12°C).",
+                        Location = "Phòng Kỹ Thuật - Tầng Hầm"
+                    });
+                    break;
+
+                case "CCTV":
+                    var cam = Devices.FirstOrDefault(d => d.SubSystem == SubSystemType.CCTV);
+                    if (cam != null)
+                    {
+                        cam.Status = DeviceStatus.Offline;
+                        cam.LastError = "RTSP timeout 1000ms";
+                        OnDeviceStatusChanged(this, cam);
+                    }
+                    await _alarmService.RaiseAlarmAsync(new AlarmEvent
+                    {
+                        DeviceName = "Camera PTZ Sảnh Chính NVR",
+                        SubSystem = SubSystemType.CCTV,
+                        Severity = AlarmSeverity.Minor,
+                        Title = "Mất tín hiệu Camera Sảnh (Video Loss)",
+                        Description = "Không nhận được phản hồi gói tin heartbeat qua chuẩn ONVIF cổng 80.",
+                        Location = "Sảnh Tòa Nhà - Tầng 1"
+                    });
+                    break;
+
+                case "RestoreAll":
+                    // Restore all devices to Online
+                    foreach (var d in Devices)
+                    {
+                        d.Status = DeviceStatus.Online;
+                        d.LastError = string.Empty;
+                        d.LastSeen = DateTime.Now;
+                    }
+                    // Clear all alarms
+                    var alarmsToResolve = ActiveAlarms.ToList();
+                    foreach (var a in alarmsToResolve)
+                    {
+                        await _alarmService.ResolveAlarmAsync(a.Id);
+                    }
+                    UpdateCounters();
+                    UpdateSubsystemOverviews();
+                    StatusMessage = "Đã khôi phục toàn bộ hệ thống về trạng thái bình thường 100%.";
+                    break;
+            }
+
+            IsDrillModalOpen = false;
+        }
+
         // --- DEVICE MANAGEMENT COMMANDS (MODULE 6) ---
 
         [RelayCommand]
@@ -324,6 +623,8 @@ namespace IOC.App.ViewModels
             NewDeviceLocation = string.Empty;
             NewDeviceManufacturer = string.Empty;
             NewDeviceModel = string.Empty;
+            NewDeviceProtocol = "ICMP/Ping";
+            NewDeviceFloor = "Tầng 1";
             IsAddDeviceFormOpen = true;
         }
 
@@ -351,8 +652,15 @@ namespace IOC.App.ViewModels
                 Location = NewDeviceLocation.Trim(),
                 Manufacturer = NewDeviceManufacturer.Trim(),
                 Model = NewDeviceModel.Trim(),
+                Protocol = NewDeviceProtocol.Trim(),
+                Floor = NewDeviceFloor,
                 Status = DeviceStatus.Online,
-                LastSeen = DateTime.Now
+                LastSeen = DateTime.Now,
+                LatencyMs = 1.2,
+                Telemetry = "Đang khởi tạo giám sát",
+                UptimePercent = 100.0,
+                CanvasX = 200,
+                CanvasY = 200
             };
 
             await _databaseService.SaveDeviceAsync(dev);
@@ -360,7 +668,9 @@ namespace IOC.App.ViewModels
 
             Devices.Add(dev);
             ApplyDeviceFilter();
+            ApplyFloorFilter();
             UpdateCounters();
+            UpdateSubsystemOverviews();
 
             IsAddDeviceFormOpen = false;
             StatusMessage = $"Đã thêm mới thiết bị '{dev.Name}' vào danh bạ giám sát.";
@@ -381,7 +691,9 @@ namespace IOC.App.ViewModels
 
                 Devices.Remove(device);
                 ApplyDeviceFilter();
+                ApplyFloorFilter();
                 UpdateCounters();
+                UpdateSubsystemOverviews();
 
                 StatusMessage = $"Đã xóa thiết bị '{device.Name}' khỏi danh bạ.";
             }
@@ -442,7 +754,9 @@ namespace IOC.App.ViewModels
                         }
 
                         ApplyDeviceFilter();
+                        ApplyFloorFilter();
                         UpdateCounters();
+                        UpdateSubsystemOverviews();
 
                         string msg = $"Đã nhập thành công {imported.Count} thiết bị vào hệ thống.";
                         if (errors.Count > 0)
@@ -463,78 +777,6 @@ namespace IOC.App.ViewModels
             {
                 MessageBox.Show($"Lỗi nhập danh bạ: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        // --- SIMULATION COMMANDS FOR TESTING ---
-
-        [RelayCommand]
-        public async Task SimulateFireAlarmAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Tủ Báo Cháy Hochiki (FAS)",
-                SubSystem = SubSystemType.FireAlarm,
-                Severity = AlarmSeverity.Critical,
-                Title = "BÁO ĐỘNG CHÁY: Đầu báo khói kích hoạt tại Tầng 2!",
-                Description = "Khu vực Hành lang Đông Tầng 2 phát hiện nồng độ khói vượt ngưỡng khẩn cấp.",
-                Location = "Hành Lang Đông - Tầng 2"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulateSwitchDownAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Switch Core Cisco 3850",
-                SubSystem = SubSystemType.LanTel,
-                Severity = AlarmSeverity.Critical,
-                Title = "MẤT KẾT NỐI SWITCH CORE TRUNG TÂM",
-                Description = "Giao thức SNMP gửi Trap linkDown: Cổng GigabitEthernet 1/0/1 bị ngắt kết nối.",
-                Location = "Phòng Máy Chủ - Tầng 2"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulatePaFaultAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Tủ Âm Thanh PA Bosch",
-                SubSystem = SubSystemType.PublicAddress,
-                Severity = AlarmSeverity.Major,
-                Title = "SỰ CỐ ĐỨT ĐƯỜNG DÂY LOA (PA LINE FAULT)",
-                Description = "Phát hiện thay đổi trở kháng bất thường tại Vùng loa Tầng 3 (Zone 3). Đường dây loa có thể bị đứt.",
-                Location = "Phòng Điều Hành - Tầng 1"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulateChillerFaultAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "BMS - Chiller Trane",
-                SubSystem = SubSystemType.BMS,
-                Severity = AlarmSeverity.Major,
-                Title = "CẢNH BÁO BMS: Nhiệt độ nước lạnh Chiller vượt ngưỡng",
-                Description = "Thanh ghi Modbus 40012 ghi nhận nhiệt độ nước cấp đạt 18.5°C (Ngưỡng an toàn: 7-12°C).",
-                Location = "Phòng Kỹ Thuật - Tầng Hầm"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulateCameraLossAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Camera PTZ Sảnh Chính NVR",
-                SubSystem = SubSystemType.CCTV,
-                Severity = AlarmSeverity.Minor,
-                Title = "Mất tín hiệu Camera Sảnh (Video Loss)",
-                Description = "Không nhận được phản hồi gói tin heartbeat qua chuẩn ONVIF cổng 80.",
-                Location = "Sảnh Tòa Nhà - Tầng 1"
-            });
         }
     }
 }

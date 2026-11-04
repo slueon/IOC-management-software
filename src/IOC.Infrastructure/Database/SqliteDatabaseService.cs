@@ -40,7 +40,14 @@ namespace IOC.Infrastructure.Database
                     Manufacturer TEXT,
                     Model TEXT,
                     InstallDate TEXT,
-                    Notes TEXT
+                    Notes TEXT,
+                    Protocol TEXT,
+                    LatencyMs REAL,
+                    Telemetry TEXT,
+                    UptimePercent REAL,
+                    Floor TEXT,
+                    CanvasX REAL,
+                    CanvasY REAL
                 );
 
                 CREATE TABLE IF NOT EXISTS AlarmEvents (
@@ -61,7 +68,7 @@ namespace IOC.Infrastructure.Database
             ";
             await cmd.ExecuteNonQueryAsync();
 
-            // Run lightweight migration if columns missing from previous versions
+            // Run migration for existing databases
             await RunMigrationAsync(connection);
 
             // Seed initial devices if empty
@@ -70,8 +77,8 @@ namespace IOC.Infrastructure.Database
 
         private static async Task RunMigrationAsync(SqliteConnection connection)
         {
-            string[] newColumns = ["MacAddress", "Manufacturer", "Model", "InstallDate", "Notes"];
-            foreach (var col in newColumns)
+            string[] textColumns = ["MacAddress", "Manufacturer", "Model", "InstallDate", "Notes", "Protocol", "Telemetry", "Floor"];
+            foreach (var col in textColumns)
             {
                 try
                 {
@@ -79,10 +86,19 @@ namespace IOC.Infrastructure.Database
                     alterCmd.CommandText = $"ALTER TABLE Devices ADD COLUMN {col} TEXT;";
                     await alterCmd.ExecuteNonQueryAsync();
                 }
-                catch
+                catch { }
+            }
+
+            string[] realColumns = ["LatencyMs", "UptimePercent", "CanvasX", "CanvasY"];
+            foreach (var col in realColumns)
+            {
+                try
                 {
-                    // Column already exists, safe to ignore
+                    var alterCmd = connection.CreateCommand();
+                    alterCmd.CommandText = $"ALTER TABLE Devices ADD COLUMN {col} REAL DEFAULT 0;";
+                    await alterCmd.ExecuteNonQueryAsync();
                 }
+                catch { }
             }
         }
 
@@ -95,15 +111,177 @@ namespace IOC.Infrastructure.Database
 
             var seedDevices = new List<Device>
             {
-                new() { Name = "Switch Core Cisco 3850", SubSystem = SubSystemType.LanTel, IpAddress = "192.168.1.1", Port = 161, Location = "Phòng Máy Chủ - Tầng 2", Manufacturer = "Cisco", Model = "WS-C3850-24T", MacAddress = "00:1A:2B:3C:4D:01" },
-                new() { Name = "Tổng đài IP Grandstream PBX", SubSystem = SubSystemType.LanTel, IpAddress = "192.168.1.2", Port = 5060, Location = "Phòng Máy Chủ - Tầng 2", Manufacturer = "Grandstream", Model = "UCM6208", MacAddress = "00:1A:2B:3C:4D:02" },
-                new() { Name = "Tủ Trung tâm Âm thanh PA Bosch", SubSystem = SubSystemType.PublicAddress, IpAddress = "192.168.2.10", Port = 161, Location = "Phòng Điều Hành - Tầng 1", Manufacturer = "Bosch", Model = "Praesideo PRS-NCO3", MacAddress = "00:1A:2B:3C:4D:03" },
-                new() { Name = "Camera PTZ Sảnh Chính NVR", SubSystem = SubSystemType.CCTV, IpAddress = "192.168.3.101", Port = 80, Location = "Sảnh Tòa Nhà - Tầng 1", Manufacturer = "Hikvision", Model = "DS-2DE4425IW-DE", MacAddress = "00:1A:2B:3C:4D:04" },
-                new() { Name = "Camera Hành Lang Tầng 3", SubSystem = SubSystemType.CCTV, IpAddress = "192.168.3.103", Port = 80, Location = "Hành Lang Đông - Tầng 3", Manufacturer = "Hikvision", Model = "DS-2CD2143G2-I", MacAddress = "00:1A:2B:3C:4D:05" },
-                new() { Name = "BMS - Bộ Điều Khiển Chiller Trane", SubSystem = SubSystemType.BMS, IpAddress = "192.168.4.50", Port = 502, Location = "Phòng Kỹ Thuật - Tầng Hầm", Manufacturer = "Trane", Model = "Tracer AdaptiView", MacAddress = "00:1A:2B:3C:4D:06" },
-                new() { Name = "BMS - Đồng Hồ Đo Điện Tổng", SubSystem = SubSystemType.BMS, IpAddress = "192.168.4.51", Port = 502, Location = "Trạm Biến Áp - Tầng Hầm", Manufacturer = "Schneider", Model = "PM5350", MacAddress = "00:1A:2B:3C:4D:07" },
-                new() { Name = "Cửa Kiểm Soát Vào Ra Sảnh VIP", SubSystem = SubSystemType.AccessControl, IpAddress = "192.168.5.20", Port = 8000, Location = "Khu Vực VIP - Tầng 1", Manufacturer = "Suprema", Model = "BioStation 3", MacAddress = "00:1A:2B:3C:4D:08" },
-                new() { Name = "Tủ Trung Tâm Báo Cháy Hochiki (FAS)", SubSystem = SubSystemType.FireAlarm, IpAddress = "192.168.6.1", Port = 502, Location = "Phòng Trực PCCC - Tầng 1", Manufacturer = "Hochiki", Model = "FireFinder Plus", MacAddress = "00:1A:2B:3C:4D:09" }
+                new() 
+                { 
+                    Name = "Switch Core Cisco 3850", 
+                    SubSystem = SubSystemType.LanTel, 
+                    IpAddress = "192.168.1.1", 
+                    Port = 161, 
+                    Location = "Phòng Máy Chủ - Tầng 2", 
+                    Manufacturer = "Cisco", 
+                    Model = "WS-C3850-24T", 
+                    MacAddress = "00:1A:2B:3C:4D:01",
+                    Protocol = "SNMP v2c / Ping",
+                    LatencyMs = 0.8,
+                    Telemetry = "CPU: 14% | RAM: 35% | Cổng: 24/24 Up | Lưu lượng: 450 Mbps",
+                    UptimePercent = 99.98,
+                    Floor = "Tầng 2",
+                    CanvasX = 220,
+                    CanvasY = 120,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "Tổng đài IP Grandstream PBX", 
+                    SubSystem = SubSystemType.LanTel, 
+                    IpAddress = "192.168.1.2", 
+                    Port = 5060, 
+                    Location = "Phòng Máy Chủ - Tầng 2", 
+                    Manufacturer = "Grandstream", 
+                    Model = "UCM6208", 
+                    MacAddress = "00:1A:2B:3C:4D:02",
+                    Protocol = "SIP / Ping",
+                    LatencyMs = 1.1,
+                    Telemetry = "SIP Trunk: OK | Máy nhánh online: 32/32 | Cuộc gọi đồng thời: 4",
+                    UptimePercent = 99.95,
+                    Floor = "Tầng 2",
+                    CanvasX = 380,
+                    CanvasY = 120,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "Tủ Trung tâm Âm thanh PA Bosch", 
+                    SubSystem = SubSystemType.PublicAddress, 
+                    IpAddress = "192.168.2.10", 
+                    Port = 161, 
+                    Location = "Phòng Điều Hành - Tầng 1", 
+                    Manufacturer = "Bosch", 
+                    Model = "Praesideo PRS-NCO3", 
+                    MacAddress = "00:1A:2B:3C:4D:03",
+                    Protocol = "SNMP / Dry Contact",
+                    LatencyMs = 1.8,
+                    Telemetry = "Ampli: 38°C | Nguồn chính: OK | Trở kháng 8 Zone: Chuẩn 100V",
+                    UptimePercent = 100.0,
+                    Floor = "Tầng 1",
+                    CanvasX = 480,
+                    CanvasY = 100,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "Camera PTZ Sảnh Chính NVR", 
+                    SubSystem = SubSystemType.CCTV, 
+                    IpAddress = "192.168.3.101", 
+                    Port = 80, 
+                    Location = "Sảnh Tòa Nhà - Tầng 1", 
+                    Manufacturer = "Hikvision", 
+                    Model = "DS-2DE4425IW-DE", 
+                    MacAddress = "00:1A:2B:3C:4D:04",
+                    Protocol = "ONVIF / RTSP",
+                    LatencyMs = 2.4,
+                    Telemetry = "Luồng 1080p 30fps | IR Night Vision: Auto | Bitrate: 4.2 Mbps",
+                    UptimePercent = 99.7,
+                    Floor = "Tầng 1",
+                    CanvasX = 320,
+                    CanvasY = 240,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "Camera Hành Lang Tầng 3", 
+                    SubSystem = SubSystemType.CCTV, 
+                    IpAddress = "192.168.3.103", 
+                    Port = 80, 
+                    Location = "Hành Lang Đông - Tầng 3", 
+                    Manufacturer = "Hikvision", 
+                    Model = "DS-2CD2143G2-I", 
+                    MacAddress = "00:1A:2B:3C:4D:05",
+                    Protocol = "ONVIF / RTSP",
+                    LatencyMs = 2.2,
+                    Telemetry = "Luồng RTSP 25fps | Mã hóa H.265 | Ghi hình: Liên tục",
+                    UptimePercent = 99.8,
+                    Floor = "Tầng 3",
+                    CanvasX = 350,
+                    CanvasY = 180,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "BMS - Bộ Điều Khiển Chiller Trane", 
+                    SubSystem = SubSystemType.BMS, 
+                    IpAddress = "192.168.4.50", 
+                    Port = 502, 
+                    Location = "Phòng Kỹ Thuật - Tầng Hầm", 
+                    Manufacturer = "Trane", 
+                    Model = "Tracer AdaptiView", 
+                    MacAddress = "00:1A:2B:3C:4D:06",
+                    Protocol = "BACnet IP / Modbus",
+                    LatencyMs = 3.5,
+                    Telemetry = "Nhiệt độ cấp: 7.2°C | Hồi: 12.1°C | Áp suất: 3.4 bar | Tải: 68%",
+                    UptimePercent = 99.85,
+                    Floor = "Tầng Hầm",
+                    CanvasX = 180,
+                    CanvasY = 140,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "BMS - Đồng Hồ Đo Điện Tổng", 
+                    SubSystem = SubSystemType.BMS, 
+                    IpAddress = "192.168.4.51", 
+                    Port = 502, 
+                    Location = "Trạm Biến Áp - Tầng Hầm", 
+                    Manufacturer = "Schneider", 
+                    Model = "PM5350", 
+                    MacAddress = "00:1A:2B:3C:4D:07",
+                    Protocol = "Modbus RTU / TCP",
+                    LatencyMs = 2.8,
+                    Telemetry = "Điện áp: 380V (3 Pha) | Dòng: 215A | Công suất: 142 kW | Cos phi: 0.96",
+                    UptimePercent = 99.99,
+                    Floor = "Tầng Hầm",
+                    CanvasX = 380,
+                    CanvasY = 140,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "Cửa Kiểm Soát Vào Ra Sảnh VIP", 
+                    SubSystem = SubSystemType.AccessControl, 
+                    IpAddress = "192.168.5.20", 
+                    Port = 8000, 
+                    Location = "Khu Vực VIP - Tầng 1", 
+                    Manufacturer = "Suprema", 
+                    Model = "BioStation 3", 
+                    MacAddress = "00:1A:2B:3C:4D:08",
+                    Protocol = "TCP/IP & Wiegand",
+                    LatencyMs = 1.3,
+                    Telemetry = "Cửa: Khóa an toàn | Ắc quy 12V: Tốt | Thẻ quẹt gần nhất: Hợp lệ",
+                    UptimePercent = 99.95,
+                    Floor = "Tầng 1",
+                    CanvasX = 440,
+                    CanvasY = 260,
+                    Status = DeviceStatus.Online
+                },
+                new() 
+                { 
+                    Name = "Tủ Trung Tâm Báo Cháy Hochiki (FAS)", 
+                    SubSystem = SubSystemType.FireAlarm, 
+                    IpAddress = "192.168.6.1", 
+                    Port = 502, 
+                    Location = "Phòng Trực PCCC - Tầng 1", 
+                    Manufacturer = "Hochiki", 
+                    Model = "FireFinder Plus", 
+                    MacAddress = "00:1A:2B:3C:4D:09",
+                    Protocol = "Modbus RTU / Dry Contact",
+                    LatencyMs = 1.2,
+                    Telemetry = "Loop 1-4: Bình thường | Nguồn AC: 220V OK | Pin dự phòng: 27.2V",
+                    UptimePercent = 100.0,
+                    Floor = "Tầng 1",
+                    CanvasX = 160,
+                    CanvasY = 120,
+                    Status = DeviceStatus.Online
+                }
             };
 
             foreach (var d in seedDevices)
@@ -124,9 +302,9 @@ namespace IOC.Infrastructure.Database
             var cmd = connection.CreateCommand();
             cmd.CommandText = @"
                 INSERT OR REPLACE INTO Devices 
-                (Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes)
+                (Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes, Protocol, LatencyMs, Telemetry, UptimePercent, Floor, CanvasX, CanvasY)
                 VALUES 
-                ($Id, $Name, $SubSystem, $IpAddress, $Port, $Location, $Status, $LastSeen, $LastError, $MacAddress, $Manufacturer, $Model, $InstallDate, $Notes);
+                ($Id, $Name, $SubSystem, $IpAddress, $Port, $Location, $Status, $LastSeen, $LastError, $MacAddress, $Manufacturer, $Model, $InstallDate, $Notes, $Protocol, $LatencyMs, $Telemetry, $UptimePercent, $Floor, $CanvasX, $CanvasY);
             ";
             cmd.Parameters.AddWithValue("$Id", device.Id);
             cmd.Parameters.AddWithValue("$Name", device.Name);
@@ -142,6 +320,13 @@ namespace IOC.Infrastructure.Database
             cmd.Parameters.AddWithValue("$Model", device.Model ?? string.Empty);
             cmd.Parameters.AddWithValue("$InstallDate", device.InstallDate.ToString("o"));
             cmd.Parameters.AddWithValue("$Notes", device.Notes ?? string.Empty);
+            cmd.Parameters.AddWithValue("$Protocol", device.Protocol ?? "ICMP/Ping");
+            cmd.Parameters.AddWithValue("$LatencyMs", device.LatencyMs);
+            cmd.Parameters.AddWithValue("$Telemetry", device.Telemetry ?? string.Empty);
+            cmd.Parameters.AddWithValue("$UptimePercent", device.UptimePercent);
+            cmd.Parameters.AddWithValue("$Floor", device.Floor ?? "Tầng 1");
+            cmd.Parameters.AddWithValue("$CanvasX", device.CanvasX);
+            cmd.Parameters.AddWithValue("$CanvasY", device.CanvasY);
 
             await cmd.ExecuteNonQueryAsync();
         }
@@ -177,13 +362,34 @@ namespace IOC.Infrastructure.Database
             await cmd.ExecuteNonQueryAsync();
         }
 
+        public async Task UpdateDeviceTelemetryAsync(string deviceId, DeviceStatus status, double latencyMs, string telemetry, string lastError)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+                UPDATE Devices 
+                SET Status = $Status, LastSeen = $LastSeen, LatencyMs = $LatencyMs, Telemetry = $Telemetry, LastError = $LastError
+                WHERE Id = $Id;
+            ";
+            cmd.Parameters.AddWithValue("$Status", (int)status);
+            cmd.Parameters.AddWithValue("$LastSeen", DateTime.Now.ToString("o"));
+            cmd.Parameters.AddWithValue("$LatencyMs", latencyMs);
+            cmd.Parameters.AddWithValue("$Telemetry", telemetry ?? string.Empty);
+            cmd.Parameters.AddWithValue("$LastError", lastError ?? string.Empty);
+            cmd.Parameters.AddWithValue("$Id", deviceId);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         public async Task<Device?> GetDeviceByIdAsync(string id)
         {
             using var connection = new SqliteConnection(_connectionString);
             await connection.OpenAsync();
 
             var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes FROM Devices WHERE Id = $Id;";
+            cmd.CommandText = "SELECT Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes, Protocol, LatencyMs, Telemetry, UptimePercent, Floor, CanvasX, CanvasY FROM Devices WHERE Id = $Id;";
             cmd.Parameters.AddWithValue("$Id", id);
 
             using var reader = await cmd.ExecuteReaderAsync();
@@ -201,7 +407,7 @@ namespace IOC.Infrastructure.Database
             await connection.OpenAsync();
 
             var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes FROM Devices ORDER BY SubSystem, Name;";
+            cmd.CommandText = "SELECT Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes, Protocol, LatencyMs, Telemetry, UptimePercent, Floor, CanvasX, CanvasY FROM Devices ORDER BY SubSystem, Name;";
 
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -222,7 +428,7 @@ namespace IOC.Infrastructure.Database
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
-                conditions.Add("(Name LIKE $keyword OR IpAddress LIKE $keyword OR Location LIKE $keyword OR Manufacturer LIKE $keyword)");
+                conditions.Add("(Name LIKE $keyword OR IpAddress LIKE $keyword OR Location LIKE $keyword OR Manufacturer LIKE $keyword OR Model LIKE $keyword)");
                 cmd.Parameters.AddWithValue("$keyword", $"%{keyword.Trim()}%");
             }
 
@@ -239,7 +445,7 @@ namespace IOC.Infrastructure.Database
             }
 
             var whereClause = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : string.Empty;
-            cmd.CommandText = $"SELECT Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes FROM Devices {whereClause} ORDER BY SubSystem, Name;";
+            cmd.CommandText = $"SELECT Id, Name, SubSystem, IpAddress, Port, Location, Status, LastSeen, LastError, MacAddress, Manufacturer, Model, InstallDate, Notes, Protocol, LatencyMs, Telemetry, UptimePercent, Floor, CanvasX, CanvasY FROM Devices {whereClause} ORDER BY SubSystem, Name;";
 
             using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -251,7 +457,7 @@ namespace IOC.Infrastructure.Database
 
         private static Device MapDeviceFromReader(SqliteDataReader reader)
         {
-            return new Device
+            var dev = new Device
             {
                 Id = reader.GetString(0),
                 Name = reader.GetString(1),
@@ -268,6 +474,16 @@ namespace IOC.Infrastructure.Database
                 InstallDate = reader.IsDBNull(12) ? DateTime.Now : DateTime.Parse(reader.GetString(12)),
                 Notes = reader.IsDBNull(13) ? string.Empty : reader.GetString(13)
             };
+
+            if (reader.FieldCount > 14 && !reader.IsDBNull(14)) dev.Protocol = reader.GetString(14);
+            if (reader.FieldCount > 15 && !reader.IsDBNull(15)) dev.LatencyMs = reader.GetDouble(15);
+            if (reader.FieldCount > 16 && !reader.IsDBNull(16)) dev.Telemetry = reader.GetString(16);
+            if (reader.FieldCount > 17 && !reader.IsDBNull(17)) dev.UptimePercent = reader.GetDouble(17);
+            if (reader.FieldCount > 18 && !reader.IsDBNull(18)) dev.Floor = reader.GetString(18);
+            if (reader.FieldCount > 19 && !reader.IsDBNull(19)) dev.CanvasX = reader.GetDouble(19);
+            if (reader.FieldCount > 20 && !reader.IsDBNull(20)) dev.CanvasY = reader.GetDouble(20);
+
+            return dev;
         }
 
         public async Task SaveAlarmAsync(AlarmEvent alarm)

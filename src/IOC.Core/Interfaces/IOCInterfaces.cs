@@ -32,6 +32,7 @@ namespace IOC.Core.Interfaces
         Task SaveDeviceAsync(Device device);
         Task DeleteDeviceAsync(string id);
         Task UpdateDeviceStatusAsync(string deviceId, DeviceStatus status, string lastError);
+        Task UpdateDeviceTelemetryAsync(string deviceId, DeviceStatus status, double latencyMs, string telemetry, string lastError);
         Task<List<Device>> SearchDevicesAsync(string? keyword, SubSystemType? subSystem, DeviceStatus? status);
     }
 
@@ -45,6 +46,7 @@ namespace IOC.Core.Interfaces
         void RegisterDevice(Device device);
         void UnregisterDevice(string deviceId);
         Task PingCheckDeviceAsync(Device device);
+        Task TriggerManualScanAsync();
     }
 
     public interface IDeviceImportExportService

@@ -19,6 +19,46 @@ namespace IOC.Core.Models
         public string Model { get; set; } = string.Empty;
         public DateTime InstallDate { get; set; } = DateTime.Now;
         public string Notes { get; set; } = string.Empty;
+
+        // Telemetry & Real-time Monitoring properties
+        public string Protocol { get; set; } = "ICMP/Ping";
+        public double LatencyMs { get; set; } = 1.2;
+        public string Telemetry { get; set; } = "Hoạt động bình thường";
+        public double UptimePercent { get; set; } = 99.9;
+        public string Floor { get; set; } = "Tầng 1";
+        public double CanvasX { get; set; } = 100;
+        public double CanvasY { get; set; } = 100;
+
+        public string StatusColor => Status switch
+        {
+            DeviceStatus.Online => "#48BB78",
+            DeviceStatus.Warning => "#ED8936",
+            _ => "#F56565"
+        };
+
+        public string StatusBadgeText => Status switch
+        {
+            DeviceStatus.Online => "ONLINE",
+            DeviceStatus.Warning => "CẢNH BÁO",
+            _ => "MẤT KẾT NỐI"
+        };
+    }
+
+    public class SubSystemOverview
+    {
+        public SubSystemType SubSystem { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string StatusText { get; set; } = "BÌNH THƯỜNG";
+        public string StatusColor { get; set; } = "#48BB78"; // Green
+        public string ProtocolInfo { get; set; } = string.Empty;
+        public int TotalDevices { get; set; }
+        public int OnlineDevices { get; set; }
+        public string PrimaryMetric { get; set; } = string.Empty;
+        public string SecondaryMetric { get; set; } = string.Empty;
+        public double Uptime { get; set; } = 100.0;
+        public bool HasAlert { get; set; } = false;
     }
 
     public class AlarmEvent
