@@ -237,3 +237,30 @@ Hiện thực hóa Module 1 theo tài liệu `Danh_sach_tinh_nang_phan_mem_IOC.d
     * `dotnet test`: Vượt qua **68/68 Unit Tests** (100% pass, 0 regression).
     * `dotnet build -warnaserror`: **0 Warning, 0 Error**.
     * `dotnet publish`: Đã đóng gói thành công bản Release sạch tại `bin/publish/IOC.App.exe` (và `bin/publish_v1/IOC.App.exe`).
+
+- [x] **Task 17: Toàn Diện Hóa & Nâng Cấp Giao Diện Mission-Critical IOC (UX Triage, Safety Guardrails & Vector Systems)**
+  - [x] 17.1 [UX TRIAGE]: Nâng cấp Card 1 tại Tab 0 thành **Trung Tâm Điều Phối Sự Cố (Incident Triage & Response Center)**:
+    * Bổ sung bộ lọc trạng thái vận hành: `Tất Cả` | `🚨 Cần Xử Lý Ngay (UNACK)` | `⏳ Đang Xử Lý (ACK)` | `✓ Đã Khắc Phục`.
+    * Tự động tính toán số lượng sự cố cần xử lý tức thời và sự cố đang theo dõi.
+  - [x] 17.2 [ACCESSIBILITY & MULTI-MODAL CUES]:
+    * Triệt tiêu sự phụ thuộc đơn thuần vào màu sắc: Kết hợp đồng thời Ký hiệu hình học (`[!]/[▲]/[i]/[✓]`) + Nhãn văn bản Severity + Khung viền tương phản cao (`BorderBrush`) + Nền Pastel chuyên biệt.
+    * Hỗ trợ người dùng mù màu (Deuteranopia) và màn hình độ tương phản thấp trong phòng trực tối.
+  - [x] 17.3 [EXPANDABLE SIDEBAR & VECTOR ICONS]:
+    * Thay thế toàn bộ ký tự Unicode Emoji bằng **Vector Path Geometries (SVG)** sắc nét 100% ở mọi tỷ lệ DPI: `GeoDashboard`, `GeoLanNetwork`, `GeoPublicAddress`, `GeoCctvCamera`, `GeoAccessControl`, `GeoBmsEngine`, `GeoFireAlarm`, `GeoSimulationFlask`.
+    * Thanh Sidebar mở rộng/thu gọn thông minh (`64px` $\leftrightarrow$ `210px`) kèm nút Hamburger Toggle.
+    * Tích hợp **Badge cảnh báo đỏ thời gian thực** hiển thị trực tiếp số lượng sự cố đang kích hoạt trên từng biểu tượng phân hệ.
+  - [x] 17.4 [SAFETY GUARDRAILS - TWO-STEP CONFIRMATION]:
+    * Thiết lập lớp bảo vệ an toàn 2 bước (**Two-Step Safety Confirmation Modal Dialog**) cho các thao tác nguy hiểm trên phần cứng:
+      - Xả khẩn cấp toàn bộ cửa tòa nhà (`EmergencyReleaseAll`)
+      - Khóa an ninh toàn tòa nhà (`LockdownAll`)
+      - Đề nổ máy phát điện dự phòng Cummins 1000kVA (`StartGeneratorTest`)
+      - Bật quạt thông gió hút khói cưỡng bức tầng hầm B2
+    * Hộp thoại nổi cảnh báo đỏ, nêu rõ hậu quả kỹ thuật và yêu cầu xác nhận chủ động của Trực ban hoặc bấm `Esc` / `Hủy Bỏ`.
+  - [x] 17.5 [KEYBOARD SHORTCUTS & KIOSK / VIDEO WALL MODE]:
+    * Tích hợp hệ thống phím tắt khẩn cấp: `F1` đến `F9` (chuyển nhanh 8 tab), `F5` (làm mới toàn bộ), `F11` (Bật/Tắt chế độ Toàn Màn Hình Kiosk không viền cho Video Wall), `Esc` (Hủy bỏ/Đóng modal).
+  - [x] 17.6 [TELEMETRY HEARTBEAT & DATA FRESHNESS]:
+    * Top Bar hiển thị tín hiệu Telemetry thời gian thực: `● Telemetry Live (8ms)` + Giờ cập nhật gần nhất (`Cập nhật lúc: HH:mm:ss`).
+  - [x] 17.7 [VERIFIER GATE]:
+    * `dotnet test`: Vượt qua **72/72 Unit Tests** (100% pass, 0 regression).
+    * `dotnet build -warnaserror`: **0 Warning, 0 Error**.
+    * `dotnet publish`: Đã đóng gói thành công bản dựng Release hoàn thiện tại `bin/publish/IOC.App.exe`.

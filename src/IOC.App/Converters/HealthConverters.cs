@@ -450,3 +450,78 @@ public class TabSelectedToVisibilityConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }
+
+
+public class PositiveCountToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is int count)
+        {
+            return count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class SeverityToBorderBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is AlarmSeverity severity)
+        {
+            return severity switch
+            {
+                AlarmSeverity.Critical => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626")),
+                AlarmSeverity.Major => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EA580C")),
+                AlarmSeverity.Minor => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")),
+                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"))
+            };
+        }
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class SeverityToBackgroundPillConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is AlarmSeverity severity)
+        {
+            return severity switch
+            {
+                AlarmSeverity.Critical => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2")),
+                AlarmSeverity.Major => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFEDD5")),
+                AlarmSeverity.Minor => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")),
+                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5"))
+            };
+        }
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class SeverityToSymbolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is AlarmSeverity severity)
+        {
+            return severity switch
+            {
+                AlarmSeverity.Critical => "[!]",
+                AlarmSeverity.Major => "[▲]",
+                AlarmSeverity.Minor => "[i]",
+                _ => "[✓]"
+            };
+        }
+        return "[?]";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}

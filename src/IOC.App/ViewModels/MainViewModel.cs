@@ -44,6 +44,113 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [ObservableProperty]
+    private bool _isSidebarExpanded;
+
+    [ObservableProperty]
+    private double _sidebarWidth = 64;
+
+    [RelayCommand]
+    public void ToggleSidebar()
+    {
+        IsSidebarExpanded = !IsSidebarExpanded;
+        SidebarWidth = IsSidebarExpanded ? 210 : 64;
+    }
+
+    [ObservableProperty]
+    private bool _isKioskMode;
+
+    [RelayCommand]
+    public void ToggleKioskMode()
+    {
+        IsKioskMode = !IsKioskMode;
+    }
+
+    [ObservableProperty]
+    private int _lanAlarmCount;
+
+    [ObservableProperty]
+    private int _paAlarmCount;
+
+    [ObservableProperty]
+    private int _cctvAlarmCount;
+
+    [ObservableProperty]
+    private int _accessAlarmCount;
+
+    [ObservableProperty]
+    private int _bmsAlarmCount;
+
+    [ObservableProperty]
+    private int _fireAlarmCount;
+
+    [ObservableProperty]
+    private int _totalActiveAlarmsCount;
+
+    [ObservableProperty]
+    private bool _isTelemetryLive = true;
+
+    [ObservableProperty]
+    private string _telemetryHeartbeatText = "● Telemetry Live (8ms)";
+
+    [ObservableProperty]
+    private string _lastUpdateText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isRefreshing;
+
+    // Two-step Safety Confirmation Modal
+    [ObservableProperty]
+    private bool _isConfirmModalOpen;
+
+    [ObservableProperty]
+    private string _confirmModalTitle = string.Empty;
+
+    [ObservableProperty]
+    private string _confirmModalMessage = string.Empty;
+
+    [ObservableProperty]
+    private string _confirmModalWarning = string.Empty;
+
+    [ObservableProperty]
+    private string _confirmModalSubsystem = string.Empty;
+
+    [ObservableProperty]
+    private string _confirmModalActionText = "Xác Nhận Thực Hiện";
+
+    private Func<Task>? _pendingDangerousAction;
+
+    public void RequestDangerousConfirmation(string title, string message, string warning, string subsystem, Func<Task> action, string actionText = "Xác Nhận Thực Hiện")
+    {
+        ConfirmModalTitle = title;
+        ConfirmModalMessage = message;
+        ConfirmModalWarning = warning;
+        ConfirmModalSubsystem = subsystem;
+        ConfirmModalActionText = actionText;
+        _pendingDangerousAction = action;
+        IsConfirmModalOpen = true;
+    }
+
+    [RelayCommand]
+    public async Task ExecuteConfirmedActionAsync()
+    {
+        IsConfirmModalOpen = false;
+        if (_pendingDangerousAction != null)
+        {
+            var act = _pendingDangerousAction;
+            _pendingDangerousAction = null;
+            await act();
+            await RefreshAllAsync();
+        }
+    }
+
+    [RelayCommand]
+    public void CancelConfirmation()
+    {
+        IsConfirmModalOpen = false;
+        _pendingDangerousAction = null;
+    }
+
+    [ObservableProperty]
     private OverallHealthSummary? _overallSummary;
 
     [ObservableProperty]
@@ -75,8 +182,8 @@ public partial class MainViewModel : ViewModelBase
         LanTelTab = new LanTelTabViewModel(_monitoringService);
         PublicAddressTab = new PublicAddressTabViewModel(_monitoringService);
         CctvTab = new CctvTabViewModel(_monitoringService);
-        AccessControlTab = new AccessControlTabViewModel(_monitoringService);
-        BmsTab = new BmsTabViewModel(_monitoringService);
+        AccessControlTab = new AccessControlTabViewModel(_monitoringService, RequestDangerousConfirmation);
+        BmsTab = new BmsTabViewModel(_monitoringService, RequestDangerousConfirmation);
         FireAlarmTab = new FireAlarmTabViewModel(_monitoringService);
         SimulationTab = new SimulationTabViewModel(_monitoringService, NavigateToTab);
 
@@ -147,6 +254,16 @@ public partial class MainViewModel : ViewModelBase
         var incidents = await _monitoringService.GetActiveIncidentsAsync();
         TopActiveAlert = incidents.FirstOrDefault(i => !i.IsAcknowledged);
         HasTopAlert = TopActiveAlert != null;
+
+        TotalActiveAlarmsCount = incidents.Count;
+        LanAlarmCount = incidents.Count(i => i.Subsystem == SubsystemType.LanTel);
+        PaAlarmCount = incidents.Count(i => i.Subsystem == SubsystemType.PublicAddress);
+        CctvAlarmCount = incidents.Count(i => i.Subsystem == SubsystemType.Cctv);
+        AccessAlarmCount = incidents.Count(i => i.Subsystem == SubsystemType.AccessControl);
+        BmsAlarmCount = incidents.Count(i => i.Subsystem == SubsystemType.Bms);
+        FireAlarmCount = incidents.Count(i => i.Subsystem == SubsystemType.FireAlarm);
+
+        LastUpdateText = $"Cập nhật lúc: {DateTime.Now:HH:mm:ss}";
     }
 
     public void NavigateToTab(int index)
@@ -157,19 +274,27 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public async Task RefreshAllAsync()
     {
-        await _monitoringService.RefreshAllAsync();
-        OverallSummary = await _monitoringService.GetOverallSummaryAsync();
+        IsRefreshing = true;
+        try
+        {
+            await _monitoringService.RefreshAllAsync();
+            OverallSummary = await _monitoringService.GetOverallSummaryAsync();
 
-        await OverviewTab.LoadDataAsync();
-        await LanTelTab.LoadDataAsync();
-        await PublicAddressTab.LoadDataAsync();
-        await CctvTab.LoadDataAsync();
-        await AccessControlTab.LoadDataAsync();
-        await BmsTab.LoadDataAsync();
-        await FireAlarmTab.LoadDataAsync();
-        await SimulationTab.RefreshSimulationStatusAsync();
+            await OverviewTab.LoadDataAsync();
+            await LanTelTab.LoadDataAsync();
+            await PublicAddressTab.LoadDataAsync();
+            await CctvTab.LoadDataAsync();
+            await AccessControlTab.LoadDataAsync();
+            await BmsTab.LoadDataAsync();
+            await FireAlarmTab.LoadDataAsync();
+            await SimulationTab.RefreshSimulationStatusAsync();
 
-        UpdateTopAlert();
+            UpdateTopAlert();
+        }
+        finally
+        {
+            IsRefreshing = false;
+        }
     }
 
     [RelayCommand]

@@ -23,10 +23,12 @@ public partial class BmsTabViewModel : SubsystemTabViewModelBase<BmsDevice>
 
     public ObservableCollection<PumpMetrics> AllPumps { get; } = [];
     public ObservableCollection<AhuFcuUnitInfo> AllHvacUnits { get; } = [];
+    private readonly ConfirmationRequester? _confirmationRequester;
 
-    public BmsTabViewModel(ISubsystemHealthMonitoringService monitoringService)
+    public BmsTabViewModel(ISubsystemHealthMonitoringService monitoringService, ConfirmationRequester? confirmationRequester = null)
         : base(monitoringService)
     {
+        _confirmationRequester = confirmationRequester;
         Title = "Cơ Điện & BMS Tòa Nhà";
         Subtitle = "Giám sát Chiller/HVAC, trạm bơm nước, điện 3 pha/máy phát & cảm biến bể ngầm/khí gas";
         IconKind = "TuneVertical";
@@ -175,6 +177,26 @@ public partial class BmsTabViewModel : SubsystemTabViewModelBase<BmsDevice>
     public void StartGeneratorTest()
     {
         if (ElecGridDevice?.Generator == null) return;
+        if (_confirmationRequester != null)
+        {
+            _confirmationRequester(
+                "ĐỀ NỔ MÁY PHÁT ĐIỆN DỰ PHÒNG CUMMINS 1000kVA",
+                "Khởi động chu trình đề nổ chạy thử không tải máy phát điện dự phòng tại phòng máy hầm B2?",
+                "CẢNH BÁO VẬN HÀNH: Động cơ Diesel công suất lớn sẽ nổ máy thực tế, phát sinh tiếng ồn, khí thải và tiêu hao dầu nhiên liệu.",
+                "Cơ Điện BMS",
+                () => { ExecuteStartGeneratorTestInternal(); return Task.CompletedTask; },
+                "XÁC NHẬN ĐỀ NỔ MÁY PHÁT"
+            );
+        }
+        else
+        {
+            ExecuteStartGeneratorTestInternal();
+        }
+    }
+
+    private void ExecuteStartGeneratorTestInternal()
+    {
+        if (ElecGridDevice?.Generator == null) return;
         ElecGridDevice.Generator.IsRunning = true;
         ElecGridDevice.Generator.GeneratorStatus = "ĐANG CHẠY THỬ (RUNNING)";
         ControlLogMessage = "⚡ Đã kích hoạt lệnh đề nổ chạy thử máy phát điện Cummins 1000kVA";
@@ -193,6 +215,27 @@ public partial class BmsTabViewModel : SubsystemTabViewModelBase<BmsDevice>
 
     [RelayCommand]
     public void ToggleExhaustFan()
+    {
+        if (HazardDevice?.Hazard == null) return;
+        if (_confirmationRequester != null)
+        {
+            string nextAction = HazardDevice.Hazard.IsExhaustFanRunning ? "TẮT" : "BẬT CƯỠNG BỨC";
+            _confirmationRequester(
+                "ĐIỀU KHIỂN HỆ THỐNG QUẠT THÔNG GIÓ HÚT KHÓI TẦNG HẦM",
+                $"Bạn có chắc chắn muốn {nextAction} quạt hút khói công nghiệp hầm xe B2?",
+                "LƯU Ý: Quạt hút khói phục vụ giải tỏa khí CO và thông gió khẩn cấp trong hầm ngầm.",
+                "Cơ Điện BMS",
+                () => { ExecuteToggleExhaustFanInternal(); return Task.CompletedTask; },
+                $"XÁC NHẬN {nextAction}"
+            );
+        }
+        else
+        {
+            ExecuteToggleExhaustFanInternal();
+        }
+    }
+
+    private void ExecuteToggleExhaustFanInternal()
     {
         if (HazardDevice?.Hazard == null) return;
         HazardDevice.Hazard.IsExhaustFanRunning = !HazardDevice.Hazard.IsExhaustFanRunning;
