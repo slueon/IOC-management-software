@@ -1,276 +1,220 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using IOC.App.ViewModels.Base;
 using IOC.Core.Enums;
 using IOC.Core.Interfaces;
-using IOC.Core.Models;
-using IOC.Infrastructure.Database;
-using IOC.Infrastructure.Protocols;
-using IOC.Infrastructure.Services;
+using IOC.Core.Models.Base;
 
-namespace IOC.App.ViewModels
+namespace IOC.App.ViewModels;
+
+public partial class MainViewModel : ViewModelBase
 {
-    public partial class MainViewModel : ObservableObject
+    private readonly ISubsystemHealthMonitoringService _monitoringService;
+    private readonly DispatcherTimer? _clockTimer;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CurrentTabTitle))]
+    private int _selectedTabIndex;
+
+    public string CurrentTabTitle => SelectedTabIndex switch
     {
-        private readonly IDatabaseService _databaseService;
-        private readonly IAlarmService _alarmService;
-        private readonly IDeviceMonitorService _monitorService;
-        private readonly DispatcherTimer _clockTimer;
+        0 => "Tổng Quan Hệ Thống",
+        1 => "Mạng LAN & Viễn Thông",
+        2 => "Hệ Thống Âm Thanh PA",
+        3 => "Giám Sát Camera CCTV",
+        4 => "Kiểm Soát Vào Ra & Thang Máy",
+        5 => "Hệ Thống Cơ Điện BMS",
+        6 => "Báo Cháy & Cứu Hỏa PCCC",
+        7 => "Mô Phỏng & Diễn Tập Sự Cố",
+        _ => "Tổng Quan Hệ Thống"
+    };
 
-        [ObservableProperty]
-        private string _currentTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
-
-        [ObservableProperty]
-        private bool _isAudioMuted;
-
-        [ObservableProperty]
-        private AlarmEvent? _topActiveAlarm;
-
-        [ObservableProperty]
-        private bool _hasActiveAlarm;
-
-        [ObservableProperty]
-        private int _totalDevices;
-
-        [ObservableProperty]
-        private int _onlineDevices;
-
-        [ObservableProperty]
-        private int _offlineDevices;
-
-        [ObservableProperty]
-        private int _activeAlarmCount;
-
-        public ObservableCollection<AlarmEvent> ActiveAlarms { get; } = new();
-        public ObservableCollection<AlarmEvent> RecentAlarms { get; } = new();
-        public ObservableCollection<Device> Devices { get; } = new();
-
-        public MainViewModel()
+    [RelayCommand]
+    public void SelectTab(object? parameter)
+    {
+        if (parameter is int idx)
         {
-            _databaseService = new SqliteDatabaseService();
-            _alarmService = new AlarmManagerService(_databaseService);
-            _monitorService = new PingMonitorService(_databaseService, _alarmService);
-
-            _alarmService.AlarmTriggered += OnAlarmTriggered;
-            _alarmService.AlarmUpdated += OnAlarmUpdated;
-            _monitorService.DeviceStatusChanged += OnDeviceStatusChanged;
-
-            _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _clockTimer.Tick += (_, _) => CurrentTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
-            _clockTimer.Start();
-
-            _ = InitializeAsync();
+            SelectedTabIndex = idx;
         }
-
-        private async Task InitializeAsync()
+        else if (parameter is string str && int.TryParse(str, out var parsed))
         {
-            await _databaseService.InitializeAsync();
-            var devices = await _databaseService.GetAllDevicesAsync();
-
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                Devices.Clear();
-                foreach (var d in devices)
-                {
-                    Devices.Add(d);
-                    _monitorService.RegisterDevice(d);
-                }
-                UpdateCounters();
-            });
-
-            // Load recent alarms
-            var recents = await _databaseService.GetRecentAlarmsAsync(50);
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                RecentAlarms.Clear();
-                foreach (var a in recents)
-                {
-                    RecentAlarms.Add(a);
-                    if (a.Status != AlarmStatus.Resolved)
-                    {
-                        ActiveAlarms.Add(a);
-                    }
-                }
-                UpdateTopAlarm();
-            });
-
-            // Start monitoring background
-            _monitorService.StartMonitoring(15);
-        }
-
-        private void OnAlarmTriggered(object? sender, AlarmEvent alarm)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                var existing = ActiveAlarms.FirstOrDefault(a => a.Id == alarm.Id);
-                if (existing == null)
-                {
-                    ActiveAlarms.Insert(0, alarm);
-                    RecentAlarms.Insert(0, alarm);
-                }
-                UpdateTopAlarm();
-            });
-        }
-
-        private void OnAlarmUpdated(object? sender, AlarmEvent alarm)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                var active = ActiveAlarms.FirstOrDefault(a => a.Id == alarm.Id);
-                if (alarm.Status == AlarmStatus.Resolved)
-                {
-                    if (active != null) ActiveAlarms.Remove(active);
-                }
-                else if (active != null)
-                {
-                    var index = ActiveAlarms.IndexOf(active);
-                    ActiveAlarms[index] = alarm;
-                }
-
-                var recent = RecentAlarms.FirstOrDefault(a => a.Id == alarm.Id);
-                if (recent != null)
-                {
-                    var rIndex = RecentAlarms.IndexOf(recent);
-                    RecentAlarms[rIndex] = alarm;
-                }
-
-                UpdateTopAlarm();
-            });
-        }
-
-        private void OnDeviceStatusChanged(object? sender, Device device)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                var d = Devices.FirstOrDefault(x => x.Id == device.Id);
-                if (d != null)
-                {
-                    var index = Devices.IndexOf(d);
-                    Devices[index] = device;
-                }
-                UpdateCounters();
-            });
-        }
-
-        private void UpdateTopAlarm()
-        {
-            TopActiveAlarm = _alarmService.TopActiveAlarm;
-            HasActiveAlarm = (TopActiveAlarm != null);
-            ActiveAlarmCount = ActiveAlarms.Count;
-        }
-
-        private void UpdateCounters()
-        {
-            TotalDevices = Devices.Count;
-            OnlineDevices = Devices.Count(d => d.Status == DeviceStatus.Online);
-            OfflineDevices = Devices.Count(d => d.Status == DeviceStatus.Offline);
-        }
-
-        [RelayCommand]
-        public async Task AcknowledgeAlarmAsync(AlarmEvent? alarm)
-        {
-            if (alarm == null) return;
-            await _alarmService.AcknowledgeAlarmAsync(alarm.Id, "Kỹ sư trực ban");
-        }
-
-        [RelayCommand]
-        public async Task AcknowledgeTopAlarmAsync()
-        {
-            if (TopActiveAlarm != null)
-            {
-                await _alarmService.AcknowledgeAlarmAsync(TopActiveAlarm.Id, "Kỹ sư trực ban");
-            }
-        }
-
-        [RelayCommand]
-        public async Task ResolveAlarmAsync(AlarmEvent? alarm)
-        {
-            if (alarm == null) return;
-            await _alarmService.ResolveAlarmAsync(alarm.Id);
-        }
-
-        [RelayCommand]
-        public void ToggleMute()
-        {
-            _alarmService.ToggleMute();
-            IsAudioMuted = _alarmService.IsAudioMuted;
-        }
-
-        // --- SIMULATION COMMANDS FOR TESTING ---
-
-        [RelayCommand]
-        public async Task SimulateFireAlarmAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Tủ Báo Cháy Hochiki (FAS)",
-                SubSystem = SubSystemType.FireAlarm,
-                Severity = AlarmSeverity.Critical,
-                Title = "BÁO ĐỘNG CHÁY: Đầu báo khói kích hoạt tại Tầng 2!",
-                Description = "Khu vực Hành lang Đông Tầng 2 phát hiện nồng độ khói vượt ngưỡng khẩn cấp.",
-                Location = "Hành Lang Đông - Tầng 2"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulateSwitchDownAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Switch Core Cisco 3850",
-                SubSystem = SubSystemType.LanTel,
-                Severity = AlarmSeverity.Critical,
-                Title = "MẤT KẾT NỐI SWITCH CORE TRUNG TÂM",
-                Description = "Giao thức SNMP gửi Trap linkDown: Cổng GigabitEthernet 1/0/1 bị ngắt kết nối.",
-                Location = "Phòng Máy Chủ - Tầng 2"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulatePaFaultAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Tủ Âm Thanh PA Bosch",
-                SubSystem = SubSystemType.PublicAddress,
-                Severity = AlarmSeverity.Major,
-                Title = "SỰ CỐ ĐỨT ĐƯỜNG DÂY LOA (PA LINE FAULT)",
-                Description = "Phát hiện thay đổi trở kháng bất thường tại Vùng loa Tầng 3 (Zone 3). Đường dây loa có thể bị đứt.",
-                Location = "Phòng Điều Hành - Tầng 1"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulateChillerFaultAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "BMS - Chiller Trane",
-                SubSystem = SubSystemType.BMS,
-                Severity = AlarmSeverity.Major,
-                Title = "CẢNH BÁO BMS: Nhiệt độ nước lạnh Chiller vượt ngưỡng",
-                Description = "Thanh ghi Modbus 40012 ghi nhận nhiệt độ nước cấp đạt 18.5°C (Ngưỡng an toàn: 7-12°C).",
-                Location = "Phòng Kỹ Thuật - Tầng Hầm"
-            });
-        }
-
-        [RelayCommand]
-        public async Task SimulateCameraLossAsync()
-        {
-            await _alarmService.RaiseAlarmAsync(new AlarmEvent
-            {
-                DeviceName = "Camera PTZ Sảnh Chính NVR",
-                SubSystem = SubSystemType.CCTV,
-                Severity = AlarmSeverity.Minor,
-                Title = "Mất tín hiệu Camera Sảnh (Video Loss)",
-                Description = "Không nhận được phản hồi gói tin heartbeat qua chuẩn ONVIF cổng 80.",
-                Location = "Sảnh Tòa Nhà - Tầng 1"
-            });
+            SelectedTabIndex = parsed;
         }
     }
+
+    [ObservableProperty]
+    private OverallHealthSummary? _overallSummary;
+
+    [ObservableProperty]
+    private SubsystemIncident? _topActiveAlert;
+
+    [ObservableProperty]
+    private bool _hasTopAlert;
+
+    [ObservableProperty]
+    private bool _isMuted;
+
+    [ObservableProperty]
+    private string _currentTimeString = string.Empty;
+
+    public OverviewTabViewModel OverviewTab { get; }
+    public LanTelTabViewModel LanTelTab { get; }
+    public PublicAddressTabViewModel PublicAddressTab { get; }
+    public CctvTabViewModel CctvTab { get; }
+    public AccessControlTabViewModel AccessControlTab { get; }
+    public BmsTabViewModel BmsTab { get; }
+    public FireAlarmTabViewModel FireAlarmTab { get; }
+    public SimulationTabViewModel SimulationTab { get; }
+
+    public MainViewModel(ISubsystemHealthMonitoringService monitoringService)
+    {
+        _monitoringService = monitoringService;
+
+        OverviewTab = new OverviewTabViewModel(_monitoringService, NavigateToTab);
+        LanTelTab = new LanTelTabViewModel(_monitoringService);
+        PublicAddressTab = new PublicAddressTabViewModel(_monitoringService);
+        CctvTab = new CctvTabViewModel(_monitoringService);
+        AccessControlTab = new AccessControlTabViewModel(_monitoringService);
+        BmsTab = new BmsTabViewModel(_monitoringService);
+        FireAlarmTab = new FireAlarmTabViewModel(_monitoringService);
+        SimulationTab = new SimulationTabViewModel(_monitoringService, NavigateToTab);
+
+        _monitoringService.HealthUpdated += OnHealthUpdated;
+        _monitoringService.IncidentRaised += OnIncidentRaised;
+
+        UpdateClock();
+
+        if (System.Windows.Application.Current != null)
+        {
+            _clockTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _clockTimer.Tick += (s, e) => UpdateClock();
+            _clockTimer.Start();
+        }
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _monitoringService.InitializeAsync();
+        await RefreshAllAsync();
+    }
+
+    public void UpdateClock()
+    {
+        CurrentTimeString = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+    }
+
+    private void OnHealthUpdated(OverallHealthSummary summary)
+    {
+        void Update()
+        {
+            OverallSummary = summary;
+            UpdateTopAlert();
+        }
+
+        if (System.Windows.Application.Current?.Dispatcher is Dispatcher dispatcher && !dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(Update);
+        }
+        else
+        {
+            Update();
+        }
+    }
+
+    private void OnIncidentRaised(SubsystemIncident incident)
+    {
+        void Update()
+        {
+            UpdateTopAlert();
+        }
+
+        if (System.Windows.Application.Current?.Dispatcher is Dispatcher dispatcher && !dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(Update);
+        }
+        else
+        {
+            Update();
+        }
+    }
+
+    private async void UpdateTopAlert()
+    {
+        var incidents = await _monitoringService.GetActiveIncidentsAsync();
+        TopActiveAlert = incidents.FirstOrDefault(i => !i.IsAcknowledged);
+        HasTopAlert = TopActiveAlert != null;
+    }
+
+    public void NavigateToTab(int index)
+    {
+        SelectedTabIndex = index;
+    }
+
+    [RelayCommand]
+    public async Task RefreshAllAsync()
+    {
+        await _monitoringService.RefreshAllAsync();
+        OverallSummary = await _monitoringService.GetOverallSummaryAsync();
+
+        await OverviewTab.LoadDataAsync();
+        await LanTelTab.LoadDataAsync();
+        await PublicAddressTab.LoadDataAsync();
+        await CctvTab.LoadDataAsync();
+        await AccessControlTab.LoadDataAsync();
+        await BmsTab.LoadDataAsync();
+        await FireAlarmTab.LoadDataAsync();
+        await SimulationTab.RefreshSimulationStatusAsync();
+
+        UpdateTopAlert();
+    }
+
+    [RelayCommand]
+    public void ToggleMute()
+    {
+        IsMuted = !IsMuted;
+    }
+
+    [RelayCommand]
+    public async Task AcknowledgeTopAlertAsync()
+    {
+        if (TopActiveAlert != null)
+        {
+            await _monitoringService.AcknowledgeIncidentAsync(TopActiveAlert.Id, "Trực ban Vận hành");
+            await RefreshAllAsync();
+        }
+    }
+
+    [RelayCommand]
+    public async Task QuickSimulateScenarioAsync(string scenario)
+    {
+        switch (scenario)
+        {
+            case "FIRE_ALERT":
+                await _monitoringService.TriggerDiagnosticFaultAsync("FAS-PANEL-01", "FIRE_ALARM");
+                SelectedTabIndex = 6; // Chuyển sang Tab Báo cháy PCCC
+                break;
+            case "SWITCH_DOWN":
+                await _monitoringService.TriggerDiagnosticFaultAsync("SW-CORE-01", "PORT_DOWN");
+                SelectedTabIndex = 1; // Chuyển sang Tab Mạng LAN
+                break;
+            case "CHILLER_FAULT":
+                await _monitoringService.TriggerDiagnosticFaultAsync("BMS-CHILLER-01", "CHILLER_OVERHEAT");
+                SelectedTabIndex = 5; // Chuyển sang Tab BMS
+                break;
+            case "DOOR_FORCED":
+                await _monitoringService.TriggerDiagnosticFaultAsync("AC-CTRL-01", "DOOR_FORCED");
+                SelectedTabIndex = 4; // Chuyển sang Tab Access Control
+                break;
+            case "CLEAR_ALL":
+                await _monitoringService.TriggerDiagnosticFaultAsync("ALL", "CLEAR_ALL");
+                break;
+        }
+
+        await RefreshAllAsync();
+    }
 }
+

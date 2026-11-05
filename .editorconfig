@@ -1,0 +1,38 @@
+root = true
+
+# Top-level editor configuration
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = crlf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+# Standard C# Code Style & Formatting
+csharp_indent_braces = false
+csharp_new_line_before_open_brace = all
+csharp_using_directive_placement = outside_namespace:silent
+csharp_style_prefer_primary_constructors = false:silent
+csharp_style_prefer_collection_expression = true:silent
+
+# Clean Problems Panel: Suppress cosmetic/syntactic suggestion noise
+dotnet_diagnostic.IDE0290.severity = none       # Use primary constructor (optional style)
+dotnet_diagnostic.IDE0028.severity = none       # Collection initialization can be simplified
+dotnet_diagnostic.IDE0300.severity = none       # Collection expression simplification
+dotnet_diagnostic.IDE0090.severity = none       # 'new' expression can be simplified
+dotnet_diagnostic.IDE0058.severity = none       # Expression value is never used
+dotnet_diagnostic.IDE0031.severity = none       # Use null propagation
+dotnet_diagnostic.IDE0005.severity = none       # Using directive is unnecessary
+dotnet_diagnostic.IDE0044.severity = none       # Add readonly modifier
+dotnet_diagnostic.CA1822.severity = none        # Member can be made static
+dotnet_diagnostic.RCS1037.severity = none       # Remove trailing white-space
+dotnet_diagnostic.RCS1146.severity = none       # Roslynator: Snapshot rules
+dotnet_diagnostic.RCS1214.severity = none       # Roslynator: Unnecessary interpolated string
+dotnet_diagnostic.RCS1077.severity = none       # Roslynator: Optimize LINQ
+dotnet_diagnostic.RCS1163.severity = none       # Roslynator: Unused parameter
+dotnet_diagnostic.RCS1021.severity = none       # Roslynator: Convert lambda to method group
+dotnet_diagnostic.CS8618.severity = none        # Non-nullable field uninitialized
+dotnet_diagnostic.CS8602.severity = none        # Dereference of possibly null reference
+dotnet_diagnostic.CS8604.severity = none        # Possible null reference argument
