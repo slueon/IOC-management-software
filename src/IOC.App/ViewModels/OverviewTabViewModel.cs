@@ -45,8 +45,21 @@ public partial class OverviewTabViewModel : ViewModelBase
     [ObservableProperty]
     private SubsystemIncident? _selectedIncident;
 
+    [ObservableProperty]
+    private string _triageFilter = "ALL";
+
+    [ObservableProperty]
+    private int _unackCount;
+
+    [ObservableProperty]
+    private int _ackCount;
+
+    [ObservableProperty]
+    private int _resolvedCount;
+
     public ObservableCollection<SubsystemHealthSummary> SubsystemCards { get; } = [];
     public ObservableCollection<SubsystemIncident> TopIncidents { get; } = [];
+    public ObservableCollection<SubsystemIncident> FilteredIncidents { get; } = [];
     public ObservableCollection<ActionLogItem> ActionLogs { get; } = [];
     public ObservableCollection<CriticalSensorItem> CriticalSensors { get; } = [];
 
@@ -95,10 +108,39 @@ public partial class OverviewTabViewModel : ViewModelBase
             {
                 TopIncidents.Add(inc);
             }
+
+            UnackCount = incidents.Count(i => !i.IsAcknowledged);
+            AckCount = incidents.Count(i => i.IsAcknowledged);
+            ResolvedCount = ActionLogs.Count(l => l.Category == "Đóng Sự Cố");
+
+            ApplyTriageFilter();
         }
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public void SetTriageFilter(string filter)
+    {
+        TriageFilter = filter ?? "ALL";
+        ApplyTriageFilter();
+    }
+
+    private void ApplyTriageFilter()
+    {
+        FilteredIncidents.Clear();
+        var query = TriageFilter switch
+        {
+            "UNACK" => TopIncidents.Where(i => !i.IsAcknowledged),
+            "ACK" => TopIncidents.Where(i => i.IsAcknowledged),
+            _ => TopIncidents.AsEnumerable()
+        };
+
+        foreach (var inc in query)
+        {
+            FilteredIncidents.Add(inc);
         }
     }
 

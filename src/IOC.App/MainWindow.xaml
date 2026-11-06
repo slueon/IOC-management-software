@@ -18,137 +18,372 @@
         WindowState="Maximized"
         Background="{StaticResource AppBackgroundBrush}">
 
-    <Grid Background="#F1F3F9">
+    <Window.InputBindings>
+        <KeyBinding Key="F1" Command="{Binding SelectTabCommand}" CommandParameter="0" />
+        <KeyBinding Key="F2" Command="{Binding SelectTabCommand}" CommandParameter="1" />
+        <KeyBinding Key="F3" Command="{Binding SelectTabCommand}" CommandParameter="2" />
+        <KeyBinding Key="F4" Command="{Binding SelectTabCommand}" CommandParameter="3" />
+        <KeyBinding Key="F5" Command="{Binding RefreshAllCommand}" />
+        <KeyBinding Key="F6" Command="{Binding SelectTabCommand}" CommandParameter="4" />
+        <KeyBinding Key="F7" Command="{Binding SelectTabCommand}" CommandParameter="5" />
+        <KeyBinding Key="F8" Command="{Binding SelectTabCommand}" CommandParameter="6" />
+        <KeyBinding Key="F9" Command="{Binding SelectTabCommand}" CommandParameter="7" />
+        <KeyBinding Key="F11" Command="{Binding ToggleKioskModeCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding CancelConfirmationCommand}" />
+    </Window.InputBindings>
+
+    <Grid Background="{Binding IsDarkMode, Converter={StaticResource BoolToDarkThemeBgConverter}}">
         <Grid.ColumnDefinitions>
-            <!-- 0: Left Navigation Rail (Purple Sidebar) -->
-            <ColumnDefinition Width="60" />
+            <!-- 0: Left Expandable Purple Navigation Rail -->
+            <ColumnDefinition Width="{Binding SidebarWidth}" />
             <!-- 1: Main Content Workspace -->
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- ========================================== -->
-        <!-- COLUMN 0: LEFT PURPLE NAVIGATION RAIL      -->
-        <!-- ========================================== -->
+        <!-- ======================================================== -->
+        <!-- COLUMN 0: EXPANDABLE PURPLE NAVIGATION DRAWER            -->
+        <!-- ======================================================== -->
         <Border Grid.Column="0" Background="#581C87" BorderThickness="0">
             <Grid>
                 <Grid.RowDefinitions>
-                    <!-- Top: Hamburger Menu Button -->
+                    <!-- Top: Hamburger Toggle Menu -->
                     <RowDefinition Height="56" />
-                    <!-- Middle: Tab Icons -->
+                    <!-- Middle: Tab Items with Crisp Vector Paths & Badges -->
                     <RowDefinition Height="*" />
-                    <!-- Bottom: System / Settings Icon -->
+                    <!-- Bottom: System Status & User Profile -->
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- 0: Hamburger Toggle Button -->
-                <Button Grid.Row="0" Style="{StaticResource PolikodSidebarBtnStyle}" ToolTip="Menu Điều Hướng">
-                    <TextBlock Text="☰" FontSize="18" FontWeight="Bold" Foreground="White" />
+                <!-- Top: Hamburger Button (Expand / Collapse Sidebar) -->
+                <Button Grid.Row="0" Command="{Binding ToggleSidebarCommand}"
+                        Style="{StaticResource PolikodSidebarItemStyle}"
+                        ToolTip="Bật / Thu Gọn Menu Điều Hướng (Sidebar)">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource GeoMenu}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="6,0,10,0" />
+                            <TextBlock Text="ĐIỀU HƯỚNG IOC" FontWeight="Bold" FontSize="13" Foreground="White" VerticalAlignment="Center"
+                                       Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </StackPanel>
+                    </Grid>
                 </Button>
 
-                <!-- 1: Vertical Navigation Buttons -->
-                <StackPanel Grid.Row="1" VerticalAlignment="Top" Margin="0,4,0,0">
-                    <!-- Tab 0: Dashboards (Overview) -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="0"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=0}"
-                            ToolTip="DashBoards (Tổng Quan)">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=0}" />
-                            <TextBlock Text="📊" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                <!-- Middle: Vertical Navigation Buttons with Vector Icons, Labels & Alarm Badges -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,4,0,0">
+                        <!-- Tab 0: Dashboards (Overview) -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="0"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=0}"
+                                ToolTip="Tổng Quan Hệ Thống (F1)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=0}" />
+                                    <Path Data="{StaticResource GeoDashboard}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="TotalActiveAlarmsCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding TotalActiveAlarmsCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Tổng Quan (F1)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="TotalActiveAlarmsCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding TotalActiveAlarmsCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Tab 1: Mạng LAN & Tel -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="1"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=1}"
-                            ToolTip="Mạng LAN &amp; Viễn Thông">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=1}" />
-                            <TextBlock Text="🌐" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        <!-- Tab 1: Mạng LAN & Tel -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="1"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=1}"
+                                ToolTip="Mạng LAN &amp; Viễn Thông (F2)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=1}" />
+                                    <Path Data="{StaticResource GeoLanNetwork}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="LanAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding LanAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Mạng LAN &amp; Tel (F2)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="LanAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding LanAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Tab 2: Âm Thanh PA -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="2"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=2}"
-                            ToolTip="Hệ Thống Âm Thanh PA">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=2}" />
-                            <TextBlock Text="📢" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        <!-- Tab 2: Âm Thanh PA -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="2"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=2}"
+                                ToolTip="Hệ Thống Âm Thanh PA (F3)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=2}" />
+                                    <Path Data="{StaticResource GeoPublicAddress}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="PaAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding PaAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Âm Thanh PA (F3)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="PaAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding PaAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Tab 3: Camera CCTV -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="3"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=3}"
-                            ToolTip="Hệ Thống Camera CCTV">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=3}" />
-                            <TextBlock Text="📹" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        <!-- Tab 3: Camera CCTV -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="3"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=3}"
+                                ToolTip="Camera An Ninh CCTV (F4)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=3}" />
+                                    <Path Data="{StaticResource GeoCctvCamera}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="CctvAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding CctvAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Camera CCTV (F4)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="CctvAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding CctvAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Tab 4: Access Control & Thang Máy -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="4"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=4}"
-                            ToolTip="Access Control &amp; Thang Máy">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=4}" />
-                            <TextBlock Text="🚪" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        <!-- Tab 4: Access Control & Thang Máy -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="4"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=4}"
+                                ToolTip="Kiểm Soát Cửa &amp; Thang Máy (F6)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=4}" />
+                                    <Path Data="{StaticResource GeoAccessControl}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="AccessAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding AccessAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Access Control (F6)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="AccessAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding AccessAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Tab 5: Cơ Điện BMS -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="5"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=5}"
-                            ToolTip="Hệ Thống Cơ Điện BMS">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=5}" />
-                            <TextBlock Text="⚙️" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        <!-- Tab 5: Cơ Điện BMS -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="5"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=5}"
+                                ToolTip="Hệ Thống Cơ Điện BMS (F7)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=5}" />
+                                    <Path Data="{StaticResource GeoBmsEngine}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="BmsAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding BmsAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Cơ Điện BMS (F7)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="BmsAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding BmsAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Tab 6: Báo Cháy PCCC -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="6"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=6}"
-                            ToolTip="Báo Cháy &amp; Cứu Hỏa PCCC">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=6}" />
-                            <TextBlock Text="🔥" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        <!-- Tab 6: Báo Cháy PCCC -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="6"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=6}"
+                                ToolTip="Báo Cháy &amp; Cứu Hỏa PCCC (F8)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=6}" />
+                                    <Path Data="{StaticResource GeoFireAlarm}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="FireAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding FireAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Báo Cháy PCCC (F8)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="FireAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding FireAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                </Border>
+                            </Grid>
+                        </Button>
 
-                    <!-- Tab 7: Mô Phỏng & Diễn Tập Sự Cố -->
-                    <Button Style="{StaticResource PolikodSidebarBtnStyle}" 
-                            Command="{Binding SelectTabCommand}" CommandParameter="7"
-                            Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=7}"
-                            ToolTip="Mô Phỏng &amp; Diễn Tập Sự Cố">
-                        <Grid>
-                            <Border Width="3" Height="24" Background="White" HorizontalAlignment="Left" Margin="-6,0,0,0"
-                                    Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=7}" />
-                            <TextBlock Text="🧪" FontSize="18" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Grid>
-                    </Button>
-                </StackPanel>
+                        <!-- Tab 7: Mô Phỏng & Diễn Tập Sự Cố -->
+                        <Button Style="{StaticResource PolikodSidebarItemStyle}" 
+                                Command="{Binding SelectTabCommand}" CommandParameter="7"
+                                Background="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=7}"
+                                ToolTip="Trung Tâm Mô Phỏng Sự Cố (F9)">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=7}" />
+                                    <Path Data="{StaticResource GeoSimulationFlask}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
+                                <TextBlock Grid.Column="1" Text="Mô Phỏng Sự Cố (F9)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
             </Grid>
         </Border>
 
-        <!-- ========================================== -->
-        <!-- COLUMN 1: MAIN WORKSPACE (WHITE HEADER)   -->
-        <!-- ========================================== -->
+        <!-- ======================================================== -->
+        <!-- COLUMN 1: MAIN WORKSPACE (WHITE HEADER & WORKSPACE)      -->
+        <!-- ======================================================== -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
                 <!-- 0: Top White App Bar -->
@@ -164,72 +399,133 @@
             <!-- ========================================== -->
             <!-- ROW 0: TOP WHITE APP BAR                   -->
             <!-- ========================================== -->
-            <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="18,0">
+            <Border Grid.Row="0" Background="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderThemeBgConverter}}" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="16,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <!-- Left: Title & Hamburger -->
                         <ColumnDefinition Width="Auto" />
+                        <!-- Center: Telemetry Status & KPI Summary -->
                         <ColumnDefinition Width="*" />
+                        <!-- Right: Action Buttons & Live Clock -->
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Left: Title -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding CurrentTabTitle}" FontWeight="Bold" FontSize="19" Foreground="#0F172A" VerticalAlignment="Center" />
-                    </StackPanel>
-
-                    <!-- Center: KPI Summary Metrics -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <!-- Total Devices -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Tổng: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalDevices}" FontWeight="Bold" Foreground="#1E293B" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Online -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding CurrentTabTitle}" FontWeight="Bold" FontSize="18" 
+                                   Foreground="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderTextColorConverter}}" VerticalAlignment="Center" />
+                        <!-- Telemetry Heartbeat Pill (Real-Time Live Signal) -->
+                        <Border Background="#ECFDF5" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="12" Padding="8,3" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Ellipse Width="7" Height="7" Fill="#10B981" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Online: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalOnline}" FontWeight="Bold" Foreground="#10B981" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Warning -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="7" Height="7" Fill="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Cảnh báo: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalWarning}" FontWeight="Bold" Foreground="#F59E0B" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Critical -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="7" Height="7" Fill="#EF4444" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Nguy cấp: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalCritical}" FontWeight="Bold" Foreground="#EF4444" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Uptime % -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Uptime: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.OverallUptimePercent, StringFormat={}{0:F1}%}" FontWeight="Bold" Foreground="#6B21A8" FontSize="12.5" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding TelemetryHeartbeatText}" FontSize="11" FontWeight="SemiBold" Foreground="#065F46" VerticalAlignment="Center" />
+                                <TextBlock Text=" | " Foreground="#A7F3D0" FontSize="11" Margin="4,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding LastUpdateText}" FontSize="10.5" Foreground="#047857" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
 
-                    <!-- Right: Live System Time (Zero distracting mock icons) -->
+                    <!-- Center: Sleek Consolidated KPI Capsule (Responsive for 1100px - 1366px) -->
+                    <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="14" Padding="12,4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Total -->
+                            <TextBlock Text="Tổng: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalDevices}" FontWeight="Bold" Foreground="#1E293B" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                            <!-- Online -->
+                            <Ellipse Width="6" Height="6" Fill="#10B981" Margin="0,0,4,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Online: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalOnline}" FontWeight="Bold" Foreground="#10B981" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                            <!-- Warning -->
+                            <Ellipse Width="6" Height="6" Fill="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Cảnh báo: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalWarning}" FontWeight="Bold" Foreground="#F59E0B" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                            <!-- Critical -->
+                            <Ellipse Width="6" Height="6" Fill="#EF4444" Margin="0,0,4,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Nguy cấp: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalCritical}" FontWeight="Bold" Foreground="#EF4444" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                            <!-- Uptime -->
+                            <TextBlock Text="Uptime: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.OverallUptimePercent, StringFormat={}{0:F1}%}" FontWeight="Bold" Foreground="#6B21A8" FontSize="11.5" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Right: Tool Actions (Night Mode, Fullscreen Kiosk, Mute, Refresh F5, Live Clock) -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="12,6">
+                        <!-- Night Shift / Dark Mode Toggle Button (Issue 7) -->
+                        <Button Command="{Binding ToggleDarkModeCommand}" 
+                                Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1"
+                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand"
+                                ToolTip="Chế Độ Ca Trực Đêm / Giảm Chói Mắt">
+                            <Grid>
+                                <Path Data="{StaticResource GeoMoon}" Fill="#475569" Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsDarkMode, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Path Data="{StaticResource GeoSun}" Fill="#F59E0B" Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsDarkMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
+                        </Button>
+
+                        <!-- Fullscreen Kiosk Mode Toggle (F11) (Issue 3) -->
+                        <Button Command="{Binding ToggleKioskModeCommand}" 
+                                Background="{Binding IsKioskMode, Converter={StaticResource BoolToKioskBgConverter}}"
+                                BorderBrush="{Binding IsKioskMode, Converter={StaticResource BoolToKioskBorderConverter}}"
+                                BorderThickness="1"
+                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand"
+                                ToolTip="{Binding IsKioskMode, Converter={StaticResource BoolToKioskTooltipConverter}}">
+                            <Grid>
+                                <Path Data="{StaticResource GeoFullscreen}" 
+                                      Fill="{Binding IsKioskMode, Converter={StaticResource BoolToKioskIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsKioskMode, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Path Data="{StaticResource GeoFullscreenExit}" 
+                                      Fill="{Binding IsKioskMode, Converter={StaticResource BoolToKioskIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsKioskMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
+                        </Button>
+
+                        <!-- Mute / Unmute Audio Toggle (Issue 3) -->
+                        <Button Command="{Binding ToggleMuteCommand}" 
+                                Background="{Binding IsMuted, Converter={StaticResource BoolToMuteBgConverter}}"
+                                BorderBrush="{Binding IsMuted, Converter={StaticResource BoolToMuteBorderConverter}}"
+                                BorderThickness="1"
+                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand"
+                                ToolTip="{Binding IsMuted, Converter={StaticResource BoolToMuteTooltipConverter}}">
+                            <Grid>
+                                <Path Data="{StaticResource GeoVolumeHigh}" 
+                                      Fill="{Binding IsMuted, Converter={StaticResource BoolToMuteIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsMuted, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Path Data="{StaticResource GeoVolumeMute}" 
+                                      Fill="{Binding IsMuted, Converter={StaticResource BoolToMuteIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsMuted, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
+                        </Button>
+
+                        <!-- Refresh Data Button (F5) -->
+                        <Button Command="{Binding RefreshAllCommand}" 
+                                Background="#6B21A8" Padding="12,6" Margin="0,0,8,0" Cursor="Hand" ToolTip="Làm Mới Toàn Bộ Dữ Liệu (F5)">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🕒 " FontSize="12" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding CurrentTimeString}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
+                                <Path Data="{StaticResource GeoRefresh}" Fill="White" Width="13" Height="13" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Làm Mới (F5)" FontSize="11.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" />
                             </StackPanel>
+                        </Button>
+
+                        <!-- Live Clock -->
+                        <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10,6">
+                            <TextBlock Text="{Binding CurrentTimeString}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
                         </Border>
                     </StackPanel>
                 </Grid>
@@ -315,42 +611,106 @@
                                         <RowDefinition Height="*" MinHeight="220" />
                                     </Grid.RowDefinitions>
 
-                                    <!-- Purple Card Header -->
-                                    <Border Grid.Row="0" Background="#6B21A8" CornerRadius="7,7,0,0" Padding="14,0">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="SỰ CỐ ĐANG KÍCH HOẠT" 
-                                                       FontWeight="Bold" FontSize="12.5" Foreground="White" VerticalAlignment="Center" />
-                                            <Border Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                    Visibility="{Binding OverviewTab.TopIncidents.Count, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                <TextBlock Text="{Binding OverviewTab.TopIncidents.Count}" FontSize="10" FontWeight="Bold" Foreground="White" />
-                                            </Border>
-                                        </StackPanel>
+                                    <!-- Purple Card Header with Triage Filter Tabs -->
+                                    <Border Grid.Row="0" Background="#6B21A8" CornerRadius="7,7,0,0" Padding="12,0">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Left: Header Title -->
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Path Data="{StaticResource GeoAlertTriangle}" Fill="#FDE047" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="ĐIỀU PHỐI SỰ CỐ (TRIAGE)" FontWeight="Bold" FontSize="12.5" Foreground="White" VerticalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <!-- Right: Triage Filter Pill Buttons -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                <Button Command="{Binding OverviewTab.SetTriageFilterCommand}" CommandParameter="ALL"
+                                                        Background="#581C87" Padding="8,3" Margin="2,0" FontSize="11" Cursor="Hand" ToolTip="Xem toàn bộ sự cố">
+                                                    <TextBlock Text="Tất Cả" />
+                                                </Button>
+
+                                                <Button Command="{Binding OverviewTab.SetTriageFilterCommand}" CommandParameter="UNACK"
+                                                        Background="#DC2626" Padding="8,3" Margin="2,0" FontSize="11" Cursor="Hand" ToolTip="Sự cố mới chưa tiếp nhận">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="🚨 Cần Xử Lý (" />
+                                                        <TextBlock Text="{Binding OverviewTab.UnackCount}" FontWeight="Bold" />
+                                                        <TextBlock Text=")" />
+                                                    </StackPanel>
+                                                </Button>
+
+                                                <Button Command="{Binding OverviewTab.SetTriageFilterCommand}" CommandParameter="ACK"
+                                                        Background="#D97706" Padding="8,3" Margin="2,0" FontSize="11" Cursor="Hand" ToolTip="Sự cố đã tiếp nhận">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="⏳ Đang Xử Lý (" />
+                                                        <TextBlock Text="{Binding OverviewTab.AckCount}" FontWeight="Bold" />
+                                                        <TextBlock Text=")" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
                                     </Border>
 
-                                    <!-- Content: Table of Active Incidents -->
-                                    <DataGrid Grid.Row="1" ItemsSource="{Binding OverviewTab.TopIncidents}" SelectedItem="{Binding OverviewTab.SelectedIncident}">
+                                    <!-- Content: Table of Filtered Incidents with High Contrast & Multi-modal Cues -->
+                                    <DataGrid Grid.Row="1" ItemsSource="{Binding OverviewTab.FilteredIncidents}" SelectedItem="{Binding OverviewTab.SelectedIncident}">
                                         <DataGrid.Columns>
+                                            <!-- Time -->
                                             <DataGridTextColumn Header="Thời Gian" Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="75" />
-                                            <DataGridTemplateColumn Header="Mức Độ" Width="85">
+
+                                            <!-- High-Contrast Severity Pill (Border + Background + Symbol + Label) -->
+                                            <DataGridTemplateColumn Header="Mức Độ" Width="105">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <Border Background="{Binding Severity, Converter={StaticResource SeverityToBrushConverter}}" 
-                                                                CornerRadius="3" Padding="5,2" HorizontalAlignment="Left">
-                                                            <TextBlock Text="{Binding Severity}" FontWeight="Bold" FontSize="10.5" Foreground="White" />
+                                                        <Border BorderBrush="{Binding Severity, Converter={StaticResource SeverityToBorderBrushConverter}}"
+                                                                Background="{Binding Severity, Converter={StaticResource SeverityToBackgroundPillConverter}}"
+                                                                BorderThickness="1.5" CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding Severity, Converter={StaticResource SeverityToSymbolConverter}}" 
+                                                                           FontWeight="Black" FontSize="10.5" 
+                                                                           Foreground="{Binding Severity, Converter={StaticResource SeverityToBorderBrushConverter}}" 
+                                                                           Margin="0,0,4,0" />
+                                                                <TextBlock Text="{Binding Severity}" FontWeight="Bold" FontSize="10" 
+                                                                           Foreground="{Binding Severity, Converter={StaticResource SeverityToBorderBrushConverter}}" />
+                                                            </StackPanel>
                                                         </Border>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="Phân Hệ" Binding="{Binding Subsystem}" Width="95" />
+
+                                            <!-- Subsystem -->
+                                            <DataGridTextColumn Header="Phân Hệ" Binding="{Binding Subsystem}" Width="100" />
+
+                                            <!-- Device -->
                                             <DataGridTextColumn Header="Thiết Bị" Binding="{Binding DeviceName}" Width="110" />
+
+                                            <!-- Incident Title -->
                                             <DataGridTextColumn Header="Nội Dung Sự Cố" Binding="{Binding Title}" Width="*" />
-                                            <DataGridTemplateColumn Header="Thao Tác" Width="75">
+
+                                            <!-- Triage Status Pill (Issue 1 Fix: Explicit High Contrast Status & Colors) -->
+                                            <DataGridTemplateColumn Header="Trạng Thái" Width="110">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{Binding IsAcknowledged, Converter={StaticResource AckStatusToBackgroundBrushConverter}}"
+                                                                BorderBrush="{Binding IsAcknowledged, Converter={StaticResource AckStatusToBorderBrushConverter}}"
+                                                                BorderThickness="1" CornerRadius="3" Padding="6,2" HorizontalAlignment="Left">
+                                                            <TextBlock Text="{Binding IsAcknowledged, Converter={StaticResource BoolToStatusTextConverter}, ConverterParameter='ĐÃ TIẾP NHẬN|CHƯA TIẾP NHẬN'}"
+                                                                       FontSize="10" FontWeight="SemiBold"
+                                                                       Foreground="{Binding IsAcknowledged, Converter={StaticResource AckStatusToTextBrushConverter}}" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <!-- Quick Triage Actions -->
+                                            <DataGridTemplateColumn Header="Thao Tác" Width="85">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <Button Command="{Binding DataContext.OverviewTab.AcknowledgeIncidentCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                                 CommandParameter="{Binding}"
-                                                                Background="#D97706" Padding="6,2" FontSize="10.5">
-                                                            <TextBlock Text="ACK" />
+                                                                Background="#6B21A8" Padding="8,3" FontSize="11" FontWeight="SemiBold">
+                                                            <TextBlock Text="✓ ACK" />
                                                         </Button>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
@@ -3480,9 +3840,9 @@
         </TabControl>
 
         <!-- ========================================== -->
-        <!-- ROW 3: BOTTOM WHITE FOOTER STATUS BAR      -->
+        <!-- ROW 3: BOTTOM FOOTER STATUS BAR            -->
         <!-- ========================================== -->
-        <Border Grid.Row="3" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,0">
+        <Border Grid.Row="3" Background="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderThemeBgConverter}}" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -3493,13 +3853,100 @@
                 <TextBlock Grid.Column="0" Text="IOC Enterprise v1.0" FontSize="11.5" Foreground="#64748B" VerticalAlignment="Center" />
 
                 <TextBlock Grid.Column="1" Text="TRUNG TÂM GIÁM SÁT &amp; ĐIỀU HÀNH TÒA NHÀ THÔNG MINH" 
-                           HorizontalAlignment="Center" FontSize="11.5" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center" />
+                           HorizontalAlignment="Center" FontSize="11.5" FontWeight="SemiBold" 
+                           Foreground="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderTextColorConverter}}" VerticalAlignment="Center" />
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="7" Height="7" Fill="#10B981" Margin="0,0,6,0" VerticalAlignment="Center" />
-                    <TextBlock Text="Trực Tuyến 100% | Latency &lt; 1ms" FontSize="11.5" FontWeight="SemiBold" Foreground="#10B981" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding TelemetryFooterStatus}" FontSize="11.5" FontWeight="SemiBold" Foreground="#10B981" VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
+        </Border>
+    </Grid>
+
+    <!-- ======================================================== -->
+    <!-- TWO-STEP SAFETY CONFIRMATION MODAL (DESTRUCTIVE ACTIONS) -->
+    <!-- ======================================================== -->
+    <Grid Grid.ColumnSpan="2" Panel.ZIndex="999"
+          Visibility="{Binding IsConfirmModalOpen, Converter={StaticResource BoolToVisibilityConverter}}">
+        <!-- Semi-transparent backdrop -->
+        <Border Background="#990F172A" />
+
+        <!-- Floating Danger Card Dialog -->
+        <Border Width="520" VerticalAlignment="Center" HorizontalAlignment="Center"
+                Background="#FFFFFF" CornerRadius="8" BorderBrush="#DC2626" BorderThickness="2"
+                Padding="24">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.35" Color="#000000" />
+            </Border.Effect>
+            <StackPanel>
+                <!-- Header with Warning Icon -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <Border Background="#FEE2E2" CornerRadius="20" Width="40" Height="40" Margin="0,0,12,0" VerticalAlignment="Center">
+                        <Path Data="{StaticResource GeoAlertTriangle}" Fill="#DC2626" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ConfirmModalTitle}" FontWeight="Bold" FontSize="15" Foreground="#991B1B" />
+                        <TextBlock Text="{Binding ConfirmModalSubsystem, StringFormat='Phân hệ: {0}'}" FontSize="12" Foreground="#64748B" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Message Body -->
+                <TextBlock Text="{Binding ConfirmModalMessage}" FontSize="13" Foreground="#1E293B" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                <!-- Explicit Danger Warning Box -->
+                <Border Background="#FEF2F2" BorderBrush="#FCA5A5" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,14">
+                    <TextBlock Text="{Binding ConfirmModalWarning}" FontSize="12" Foreground="#B91C1C" FontWeight="SemiBold" TextWrapping="Wrap" />
+                </Border>
+
+                <!-- Operator Identity and Audit Box (Issue 6) -->
+                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="CÁN BỘ VẬN HÀNH CHỊU TRÁCH NHIỆM" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
+                            <TextBlock Text="{Binding OperatorIdentity}" FontSize="11.5" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                            <TextBlock Text="THỜI ĐIỂM YÊU CẦU" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Right" />
+                            <TextBlock Text="{Binding ConfirmationTimestamp}" FontFamily="Consolas" FontSize="11" Foreground="#475569" Margin="0,2,0,0" HorizontalAlignment="Right" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Mandatory 2-Step Checkbox -->
+                <CheckBox IsChecked="{Binding IsConfirmedByOperator}" Margin="0,0,0,18" VerticalAlignment="Center">
+                    <TextBlock Text="Tôi đã xác minh hiện trường và chịu hoàn toàn trách nhiệm khi thực thi lệnh này." 
+                               FontSize="11.5" FontWeight="SemiBold" Foreground="#991B1B" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </CheckBox>
+
+                <!-- Confirmation Buttons -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Cancel Button (Escape) -->
+                    <Button Grid.Column="0" Command="{Binding CancelConfirmationCommand}"
+                            Background="#F1F5F9" Foreground="#334155" BorderBrush="#CBD5E1" BorderThickness="1"
+                            Padding="14,10" FontSize="13" FontWeight="SemiBold">
+                        <TextBlock Text="✕ Hủy Bỏ (Esc)" />
+                    </Button>
+
+                    <!-- Confirm Destructive Action Button -->
+                    <Button Grid.Column="2" Command="{Binding ExecuteConfirmedActionCommand}"
+                            IsEnabled="{Binding IsConfirmedByOperator}"
+                            Background="#DC2626" Foreground="White" BorderThickness="0"
+                            Padding="14,10" FontSize="13" FontWeight="Bold">
+                        <TextBlock Text="{Binding ConfirmModalActionText}" />
+                    </Button>
+                </Grid>
+            </StackPanel>
         </Border>
     </Grid>
 </Grid>

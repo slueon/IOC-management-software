@@ -450,3 +450,298 @@ public class TabSelectedToVisibilityConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
 }
+
+
+public class PositiveCountToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is int count)
+        {
+            return count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class SeverityToBorderBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is AlarmSeverity severity)
+        {
+            return severity switch
+            {
+                AlarmSeverity.Critical => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626")),
+                AlarmSeverity.Major => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EA580C")),
+                AlarmSeverity.Minor => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")),
+                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"))
+            };
+        }
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class SeverityToBackgroundPillConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is AlarmSeverity severity)
+        {
+            return severity switch
+            {
+                AlarmSeverity.Critical => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2")),
+                AlarmSeverity.Major => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFEDD5")),
+                AlarmSeverity.Minor => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")),
+                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5"))
+            };
+        }
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class SeverityToSymbolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is AlarmSeverity severity)
+        {
+            return severity switch
+            {
+                AlarmSeverity.Critical => "[!]",
+                AlarmSeverity.Major => "[▲]",
+                AlarmSeverity.Minor => "[i]",
+                _ => "[✓]"
+            };
+        }
+        return "[?]";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+
+public class AcknowledgementStatusToBackgroundBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool isAck)
+        {
+            return isAck
+                ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#ECFDF5"))
+                : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"));
+        }
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class AcknowledgementStatusToBorderBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool isAck)
+        {
+            return isAck
+                ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"))
+                : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+        }
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class AcknowledgementStatusToTextBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool isAck)
+        {
+            return isAck
+                ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46"))
+                : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#991B1B"));
+        }
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#991B1B"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class CountToBadgeStringConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is int count)
+        {
+            return count > 99 ? "99+" : count.ToString();
+        }
+        return "0";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToKioskTooltipConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true ? "Thoát Toàn Màn Hình (F11)" : "Toàn Màn Hình / Video Wall (F11)";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToMuteTooltipConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true ? "Bật Lại Còi Cảnh Báo (Đang Tắt)" : "Tắt Còi Cảnh Báo (Đang Bật)";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToMuteButtonBackgroundConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F8FAFC"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToMuteButtonBorderConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToMuteIconBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC2626"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToKioskButtonBackgroundConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EDE9FE"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F8FAFC"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToKioskButtonBorderConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#CBD5E1"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToKioskIconBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B21A8"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+
+public class CollapsedBadgeVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values.Length >= 2 && values[0] is bool isExpanded && values[1] is int count)
+        {
+            return (!isExpanded && count > 0) ? Visibility.Visible : Visibility.Collapsed;
+        }
+        return Visibility.Collapsed;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class ExpandedBadgeVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values.Length >= 2 && values[0] is bool isExpanded && values[1] is int count)
+        {
+            return (isExpanded && count > 0) ? Visibility.Visible : Visibility.Collapsed;
+        }
+        return Visibility.Collapsed;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToDarkThemeBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0B0F19"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F3F9"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToHeaderThemeBrushConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E293B"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFFFFF"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class BooleanToHeaderTextColorConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        return value is true
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F8FAFC"))
+            : new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0F172A"));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
+}

@@ -237,3 +237,64 @@ Hiện thực hóa Module 1 theo tài liệu `Danh_sach_tinh_nang_phan_mem_IOC.d
     * `dotnet test`: Vượt qua **68/68 Unit Tests** (100% pass, 0 regression).
     * `dotnet build -warnaserror`: **0 Warning, 0 Error**.
     * `dotnet publish`: Đã đóng gói thành công bản Release sạch tại `bin/publish/IOC.App.exe` (và `bin/publish_v1/IOC.App.exe`).
+
+- [x] **Task 17: Toàn Diện Hóa & Nâng Cấp Giao Diện Mission-Critical IOC (UX Triage, Safety Guardrails & Vector Systems)**
+  - [x] 17.1 [UX TRIAGE]: Nâng cấp Card 1 tại Tab 0 thành **Trung Tâm Điều Phối Sự Cố (Incident Triage & Response Center)**:
+    * Bổ sung bộ lọc trạng thái vận hành: `Tất Cả` | `🚨 Cần Xử Lý Ngay (UNACK)` | `⏳ Đang Xử Lý (ACK)` | `✓ Đã Khắc Phục`.
+    * Tự động tính toán số lượng sự cố cần xử lý tức thời và sự cố đang theo dõi.
+  - [x] 17.2 [ACCESSIBILITY & MULTI-MODAL CUES]:
+    * Triệt tiêu sự phụ thuộc đơn thuần vào màu sắc: Kết hợp đồng thời Ký hiệu hình học (`[!]/[▲]/[i]/[✓]`) + Nhãn văn bản Severity + Khung viền tương phản cao (`BorderBrush`) + Nền Pastel chuyên biệt.
+    * Hỗ trợ người dùng mù màu (Deuteranopia) và màn hình độ tương phản thấp trong phòng trực tối.
+  - [x] 17.3 [EXPANDABLE SIDEBAR & VECTOR ICONS]:
+    * Thay thế toàn bộ ký tự Unicode Emoji bằng **Vector Path Geometries (SVG)** sắc nét 100% ở mọi tỷ lệ DPI: `GeoDashboard`, `GeoLanNetwork`, `GeoPublicAddress`, `GeoCctvCamera`, `GeoAccessControl`, `GeoBmsEngine`, `GeoFireAlarm`, `GeoSimulationFlask`.
+    * Thanh Sidebar mở rộng/thu gọn thông minh (`64px` $\leftrightarrow$ `210px`) kèm nút Hamburger Toggle.
+    * Tích hợp **Badge cảnh báo đỏ thời gian thực** hiển thị trực tiếp số lượng sự cố đang kích hoạt trên từng biểu tượng phân hệ.
+  - [x] 17.4 [SAFETY GUARDRAILS - TWO-STEP CONFIRMATION]:
+    * Thiết lập lớp bảo vệ an toàn 2 bước (**Two-Step Safety Confirmation Modal Dialog**) cho các thao tác nguy hiểm trên phần cứng:
+      - Xả khẩn cấp toàn bộ cửa tòa nhà (`EmergencyReleaseAll`)
+      - Khóa an ninh toàn tòa nhà (`LockdownAll`)
+      - Đề nổ máy phát điện dự phòng Cummins 1000kVA (`StartGeneratorTest`)
+      - Bật quạt thông gió hút khói cưỡng bức tầng hầm B2
+    * Hộp thoại nổi cảnh báo đỏ, nêu rõ hậu quả kỹ thuật và yêu cầu xác nhận chủ động của Trực ban hoặc bấm `Esc` / `Hủy Bỏ`.
+  - [x] 17.5 [KEYBOARD SHORTCUTS & KIOSK / VIDEO WALL MODE]:
+    * Tích hợp hệ thống phím tắt khẩn cấp: `F1` đến `F9` (chuyển nhanh 8 tab), `F5` (làm mới toàn bộ), `F11` (Bật/Tắt chế độ Toàn Màn Hình Kiosk không viền cho Video Wall), `Esc` (Hủy bỏ/Đóng modal).
+  - [x] 17.6 [TELEMETRY HEARTBEAT & DATA FRESHNESS]:
+    * Top Bar hiển thị tín hiệu Telemetry thời gian thực: `● Telemetry Live (8ms)` + Giờ cập nhật gần nhất (`Cập nhật lúc: HH:mm:ss`).
+  - [x] 17.7 [VERIFIER GATE]:
+    * `dotnet test`: Vượt qua **72/72 Unit Tests** (100% pass, 0 regression).
+    * `dotnet build -warnaserror`: **0 Warning, 0 Error**.
+    * `dotnet publish`: Đã đóng gói thành công bản dựng Release hoàn thiện tại `bin/publish/IOC.App.exe`.
+
+- [x] **Task 18: Khắc Phục Triệt Để 7 Hạn Chế Giao Diện Thực Tế (UI Evaluation Fixes & Industrial SCADA Ergonomics)**
+  - [x] 18.1 [P0 FIX - TRIAGE ACK STATUS DISPLAY]:
+    * Khắc phục triệt để lỗi nhãn trạng thái sự cố chưa tiếp nhận bị tàng hình (`Transparent`) do dùng nhầm `TabSelectedToBrushConverter`.
+    * Bổ sung bộ 3 Converter chuyên dụng: `AcknowledgementStatusToBackgroundBrushConverter` (`#ECFDF5`/`#FEE2E2`), `AcknowledgementStatusToBorderBrushConverter` (`#10B981`/`#EF4444`), `AcknowledgementStatusToTextBrushConverter` (`#065F46`/`#991B1B`).
+    * Gán tham số nhãn tường minh `ConverterParameter='ĐÃ TIẾP NHẬN|CHƯA TIẾP NHẬN'` trên `BooleanToStatusTextConverter`.
+  - [x] 18.2 [P1 FIX - DYNAMIC TELEMETRY & LATENCY METRICS]:
+    * Triệt tiêu dữ liệu hardcode "Telemetry Live (8ms)" và "Trực Tuyến 100% | Latency < 1ms".
+    * Bổ sung tính toán độ trễ động trong `MainViewModel.cs`: `TelemetryLatencyMs`, `TelemetryHeartbeatText`, `TelemetryFooterStatus` phản ánh tải hạ tầng thực tế theo thời gian thực (jitter, cảnh báo bận tải khi quá 10 sự cố).
+  - [x] 18.3 [P1 FIX - BI-DIRECTIONAL TOGGLE BUTTONS]:
+    * Cập nhật nút Mute còi cảnh báo và Fullscreen Kiosk phản ánh đúng 2 chiều trạng thái:
+      - Đổi icon vector linh hoạt: `GeoVolumeHigh` $\leftrightarrow$ `GeoVolumeMute`, `GeoFullscreen` $\leftrightarrow$ `GeoFullscreenExit`.
+      - Tooltip động: "Tắt Còi Cảnh Báo (Đang Bật)" $\leftrightarrow$ "Bật Lại Còi Cảnh Báo (Đang Tắt)", "Toàn Màn Hình / Video Wall (F11)" $\leftrightarrow$ "Thoát Toàn Màn Hình (F11)".
+      - Đổi màu viền và nền active/inactive rõ ràng (`BoolToMuteBgConverter`, `BoolToKioskBgConverter`).
+  - [x] 18.4 [P1 FIX - OVERFLOW-FREE SIDEBAR BADGES]:
+    * Thiết kế hệ thống hiển thị badge thông minh đa trạng thái với `CollapsedBadgeVisibilityConverter` và `ExpandedBadgeVisibilityConverter`.
+    * Thêm `CountToBadgeStringConverter` giới hạn `99+` chống tràn số.
+    * Khi Sidebar thu gọn 64px: Badge tự động neo dạng mini-overlay ở góc trên bên phải icon vector (`Margin="0,3,4,0"`), triệt tiêu hoàn toàn hiện tượng ép ngang hoặc tràn nút.
+  - [x] 18.5 [P2 FIX - SLEEK CONSOLIDATED KPI CAPSULE]:
+    * Thu nhỏ thanh Header từ 5 thẻ KPI rời rạc (~550px) thành một **Sleek Consolidated KPI Capsule** (~320px) bo góc 14px với vạch chia thanh mảnh `#CBD5E1`.
+    * Hoàn toàn thích ứng trên mọi độ phân giải từ 1100px đến 1366px và màn hình Ultrawide mà không bị xô lệch layout.
+  - [x] 18.6 [P1 FIX - TWO-STEP SAFETY CONFIRMATION WITH OPERATOR AUDIT]:
+    * Nâng cấp hộp thoại xác nhận các thao tác nguy hiểm (Xả cửa, Lockdown, Test máy phát, Quạt hút khói tầng hầm) từ 1-click thành cơ chế bảo vệ cấp 2:
+      - Hộp thông tin định danh cán bộ trực ban: `OperatorIdentity` ("Nguyễn Văn An - OP-8821").
+      - Mốc thời gian yêu cầu lệnh chính xác đến từng giây: `ConfirmationTimestamp`.
+      - Checkbox pháp lý bắt buộc: *"Tôi đã xác minh hiện trường và chịu hoàn toàn trách nhiệm khi thực thi lệnh này."*
+      - Nút Xác nhận chỉ được kích hoạt (`IsEnabled`) khi cán bộ đã tích chọn checkbox, có guard clause chặn đứng mọi lời gọi bypass.
+  - [x] 18.7 [P3 FIX - INDUSTRIAL SCADA LOOK & NIGHT SHIFT MODE]:
+    * Tinh chỉnh bán kính bo góc card (`PolikodCardBorderStyle`, `KpiCardStyle`) từ 8px xuống 4px cho giao diện phẳng, sắc nét công nghiệp.
+    * Tích hợp Chế độ Ca Trực Đêm (Night Shift Dark Mode) với nút bấm toggle `GeoMoon` $\leftrightarrow$ `GeoSun`, chuyển đổi nền làm việc từ `#F1F3F9` sang nền tối sâu `#0B0F19` / `#1E293B` chống mỏi mắt cho trực ban đêm.
+  - [x] 18.8 [DETERMINISTIC VERIFIER GATE]:
+    * `dotnet test`: Vượt qua **97/97 Unit Tests** (100% pass, 0 regression, bổ sung `UiConverterTests.cs`).
+    * `dotnet build -warnaserror`: **0 Warning, 0 Error**.
+    * `dotnet publish`: Đã đóng gói thành công bản dựng Release tại `bin/publish/IOC.App.exe`.

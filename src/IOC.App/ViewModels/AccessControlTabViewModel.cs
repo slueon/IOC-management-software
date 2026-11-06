@@ -34,10 +34,12 @@ public partial class AccessControlTabViewModel : SubsystemTabViewModelBase<Acces
 
     public ObservableCollection<DoorPointInfo> FilteredDoors { get; } = [];
     public ObservableCollection<ElevatorInfo> Elevators { get; } = [];
+    private readonly ConfirmationRequester? _confirmationRequester;
 
-    public AccessControlTabViewModel(ISubsystemHealthMonitoringService monitoringService)
+    public AccessControlTabViewModel(ISubsystemHealthMonitoringService monitoringService, ConfirmationRequester? confirmationRequester = null)
         : base(monitoringService)
     {
+        _confirmationRequester = confirmationRequester;
         Title = "Kiểm Soát Vào Ra (Access Control)";
         Subtitle = "Cảnh báo cạy cửa cưỡng bức, giám sát trạng thái cửa theo mặt bằng, điều khiển thang máy & sức khỏe bộ điều khiển";
         IconKind = "DoorOpen";
@@ -173,6 +175,25 @@ public partial class AccessControlTabViewModel : SubsystemTabViewModelBase<Acces
     [RelayCommand]
     public void EmergencyReleaseAll()
     {
+        if (_confirmationRequester != null)
+        {
+            _confirmationRequester(
+                "XẢ CỬA KHẨN CẤP TOÀN TÒA NHÀ (EMERGENCY RELEASE)",
+                "Bạn có chắc chắn muốn mở khóa toàn bộ cửa kiểm soát thẻ và cửa thoát hiểm tòa nhà?",
+                "CẢNH BÁO NGUY HIỂM: Thao tác này mở tự do toàn bộ cửa, gửi lệnh trực tiếp xuống các bộ điều khiển chốt điện từ.",
+                "Access Control",
+                () => { ExecuteEmergencyReleaseAllInternal(); return Task.CompletedTask; },
+                "XÁC NHẬN MỞ KHÓA TOÀN BỘ"
+            );
+        }
+        else
+        {
+            ExecuteEmergencyReleaseAllInternal();
+        }
+    }
+
+    private void ExecuteEmergencyReleaseAllInternal()
+    {
         foreach (var d in Devices.SelectMany(dev => dev.DoorPoints))
         {
             d.IsLocked = false;
@@ -185,6 +206,25 @@ public partial class AccessControlTabViewModel : SubsystemTabViewModelBase<Acces
 
     [RelayCommand]
     public void LockdownAll()
+    {
+        if (_confirmationRequester != null)
+        {
+            _confirmationRequester(
+                "KHÓA AN NINH TOÀN TÒA NHÀ (LOCKDOWN)",
+                "Bạn có chắc chắn muốn khóa chốt an ninh toàn bộ các cửa tòa nhà ngay lập tức?",
+                "CẢNH BÁO AN NINH: Toàn bộ quẹt thẻ sẽ bị từ chối truy cập cho đến khi chế độ Lockdown được gỡ bỏ.",
+                "Access Control",
+                () => { ExecuteLockdownAllInternal(); return Task.CompletedTask; },
+                "XÁC NHẬN KHÓA AN NINH"
+            );
+        }
+        else
+        {
+            ExecuteLockdownAllInternal();
+        }
+    }
+
+    private void ExecuteLockdownAllInternal()
     {
         foreach (var d in Devices.SelectMany(dev => dev.DoorPoints))
         {
