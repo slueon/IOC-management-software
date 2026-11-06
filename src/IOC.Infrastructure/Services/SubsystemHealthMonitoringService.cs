@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using IOC.Core.Contracts.Persistence;
+using IOC.Core.Contracts.Session;
 using IOC.Core.Enums;
 using IOC.Core.Interfaces;
 using IOC.Core.Models.AccessControl;
@@ -8,12 +10,16 @@ using IOC.Core.Models.Cctv;
 using IOC.Core.Models.FireAlarm;
 using IOC.Core.Models.LanTel;
 using IOC.Core.Models.PublicAddress;
+using IOC.Infrastructure.Persistence;
+using IOC.Infrastructure.Session;
 
 namespace IOC.Infrastructure.Services;
 
 public class SubsystemHealthMonitoringService : ISubsystemHealthMonitoringService
 {
     private readonly ISubsystemHealthEvaluator _evaluator;
+    private readonly IIocStorageService _storageService;
+    private readonly IOperatorSessionService _sessionService;
     private readonly ConcurrentDictionary<string, SubsystemDevice> _devices = new();
     private readonly ConcurrentDictionary<string, SubsystemIncident> _incidents = new();
     private readonly object _syncLock = new();
@@ -21,13 +27,27 @@ public class SubsystemHealthMonitoringService : ISubsystemHealthMonitoringServic
     public event Action<SubsystemIncident>? IncidentRaised;
     public event Action<OverallHealthSummary>? HealthUpdated;
 
-    public SubsystemHealthMonitoringService() : this(new SubsystemHealthEvaluator())
+    public IIocStorageService StorageService => _storageService;
+    public IOperatorSessionService SessionService => _sessionService;
+
+    public SubsystemHealthMonitoringService() 
+        : this(new SubsystemHealthEvaluator(), new JsonIocStorageService(), new OperatorSessionService())
     {
     }
 
     public SubsystemHealthMonitoringService(ISubsystemHealthEvaluator evaluator)
+        : this(evaluator, new JsonIocStorageService(), new OperatorSessionService())
+    {
+    }
+
+    public SubsystemHealthMonitoringService(
+        ISubsystemHealthEvaluator evaluator,
+        IIocStorageService storageService,
+        IOperatorSessionService sessionService)
     {
         _evaluator = evaluator;
+        _storageService = storageService;
+        _sessionService = sessionService;
     }
 
     public SubsystemDevice? GetDeviceById(string deviceId)
@@ -95,33 +115,85 @@ public class SubsystemHealthMonitoringService : ISubsystemHealthMonitoringServic
         return Task.FromResult(overall);
     }
 
-    public Task AcknowledgeIncidentAsync(string incidentId, string operatorName)
+    public async Task AcknowledgeIncidentAsync(string incidentId, string operatorName)
     {
+        var resolvedOperator = string.IsNullOrWhiteSpace(operatorName) 
+            ? _sessionService.CurrentOperator.FullName 
+            : operatorName;
+
         if (_incidents.TryGetValue(incidentId, out var inc))
         {
             inc.IsAcknowledged = true;
-            inc.AcknowledgedBy = operatorName;
+            inc.AcknowledgedBy = resolvedOperator;
             inc.AcknowledgedAt = DateTime.UtcNow;
+
+            _ = _storageService.RecordAcknowledgementAsync(new IncidentAcknowledgementRecord
+            {
+                IncidentId = Guid.TryParse(inc.Id, out var parsedGuid) ? parsedGuid : Guid.NewGuid(),
+                Subsystem = inc.Subsystem.ToString(),
+                DeviceName = inc.DeviceName,
+                IncidentTitle = inc.Title,
+                OperatorId = _sessionService.CurrentOperator.OperatorId,
+                OperatorName = resolvedOperator,
+                AcknowledgedAt = DateTime.UtcNow
+            });
+
+            _ = _storageService.AppendAuditLogAsync(new AuditLogEntry
+            {
+                OperatorId = _sessionService.CurrentOperator.OperatorId,
+                OperatorName = resolvedOperator,
+                Subsystem = inc.Subsystem.ToString(),
+                Action = "TIẾP NHẬN SỰ CỐ (ACK)",
+                Details = $"Tiếp nhận sự cố: {inc.Title} trên thiết bị {inc.DeviceName}",
+                IsSuccess = true
+            });
+
             NotifyHealthUpdated();
         }
-        return Task.CompletedTask;
+        await Task.CompletedTask;
     }
 
-    public Task ResolveIncidentAsync(string incidentId)
+    public async Task ResolveIncidentAsync(string incidentId)
     {
         if (_incidents.TryGetValue(incidentId, out var inc))
         {
             inc.IsResolved = true;
             inc.ResolvedAt = DateTime.UtcNow;
+
+            _ = _storageService.AppendAuditLogAsync(new AuditLogEntry
+            {
+                OperatorId = _sessionService.CurrentOperator.OperatorId,
+                OperatorName = _sessionService.CurrentOperator.FullName,
+                Subsystem = inc.Subsystem.ToString(),
+                Action = "GIẢI QUYẾT SỰ CỐ (RESOLVE)",
+                Details = $"Đã khắc phục sự cố: {inc.Title} trên thiết bị {inc.DeviceName}",
+                IsSuccess = true
+            });
+
+            if (_devices.TryGetValue(inc.DeviceId, out var dev))
+            {
+                ApplyFaultToDevice(dev, "NORMAL");
+            }
+
             RunFullEvaluation();
         }
-        return Task.CompletedTask;
+        await Task.CompletedTask;
     }
 
     public Task TriggerDiagnosticFaultAsync(string deviceId, string faultScenario)
     {
         var scenario = faultScenario?.Trim() ?? string.Empty;
         if (string.IsNullOrEmpty(scenario)) return Task.CompletedTask;
+
+        _ = _storageService.AppendAuditLogAsync(new AuditLogEntry
+        {
+            OperatorId = _sessionService.CurrentOperator.OperatorId,
+            OperatorName = _sessionService.CurrentOperator.FullName,
+            Subsystem = "DIỄN TẬP / MÔ PHỎNG",
+            Action = "KÍCH HOẠT KỊCH BẢN",
+            Details = $"Thiết bị: {deviceId} | Kịch bản: {scenario}",
+            IsSuccess = true
+        });
 
         if (scenario.Equals("CLEAR_ALL", StringComparison.OrdinalIgnoreCase))
         {
@@ -751,9 +823,15 @@ public class SubsystemHealthMonitoringService : ISubsystemHealthMonitoringServic
                     _incidents[inc.Id] = inc;
                     IncidentRaised?.Invoke(inc);
                 }
+                else
+                {
+                    // Duplicate incident suppression: update timestamp to latest occurrence instead of duplicating
+                    existing.Timestamp = inc.Timestamp;
+                }
             }
         }
 
+        _ = _storageService.SaveDataAsync("active_incidents", _incidents.Values.Where(i => !i.IsResolved).ToList());
         NotifyHealthUpdated();
     }
 
