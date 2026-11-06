@@ -111,7 +111,7 @@ public class MainViewModelTests
         Assert.False(vm.IsConfirmModalOpen);
         Assert.False(actionExecuted);
 
-        // Request again and Confirm
+        // Request again: Test 2-step protection
         vm.RequestDangerousConfirmation(
             "XẢ CỬA KHẨN CẤP",
             "Mở khóa toàn bộ cửa?",
@@ -119,10 +119,49 @@ public class MainViewModelTests
             "Access Control",
             () => { actionExecuted = true; return Task.CompletedTask; }
         );
+        Assert.False(vm.IsConfirmedByOperator);
+        Assert.NotEmpty(vm.OperatorIdentity);
+        Assert.NotEmpty(vm.ConfirmationTimestamp);
+
+        // Attempt execution without operator checkbox confirmation -> MUST BE BLOCKED
+        await vm.ExecuteConfirmedActionCommand.ExecuteAsync(null);
+        Assert.True(vm.IsConfirmModalOpen);
+        Assert.False(actionExecuted);
+
+        // Operator explicitly checks confirmation checkbox -> ALLOW EXECUTION
+        vm.IsConfirmedByOperator = true;
         await vm.ExecuteConfirmedActionCommand.ExecuteAsync(null);
 
         Assert.False(vm.IsConfirmModalOpen);
+        Assert.False(vm.IsConfirmedByOperator);
         Assert.True(actionExecuted);
+    }
+
+    [Fact]
+    public void MainViewModel_ToggleDarkMode_TogglesState()
+    {
+        var evaluator = new SubsystemHealthEvaluator();
+        var service = new SubsystemHealthMonitoringService(evaluator);
+        var vm = new MainViewModel(service);
+
+        Assert.False(vm.IsDarkMode);
+        vm.ToggleDarkMode();
+        Assert.True(vm.IsDarkMode);
+        vm.ToggleDarkMode();
+        Assert.False(vm.IsDarkMode);
+    }
+
+    [Fact]
+    public async Task MainViewModel_DynamicTelemetry_CalculatesLatency()
+    {
+        var evaluator = new SubsystemHealthEvaluator();
+        var service = new SubsystemHealthMonitoringService(evaluator);
+        var vm = new MainViewModel(service);
+        await vm.InitializeAsync();
+
+        Assert.True(vm.TelemetryLatencyMs > 0);
+        Assert.Contains("Telemetry Live", vm.TelemetryHeartbeatText);
+        Assert.Contains("Độ trễ:", vm.TelemetryFooterStatus);
     }
 
     [Fact]

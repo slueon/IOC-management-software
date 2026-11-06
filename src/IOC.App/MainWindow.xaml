@@ -32,7 +32,7 @@
         <KeyBinding Key="Escape" Command="{Binding CancelConfirmationCommand}" />
     </Window.InputBindings>
 
-    <Grid Background="#F1F3F9">
+    <Grid Background="{Binding IsDarkMode, Converter={StaticResource BoolToDarkThemeBgConverter}}">
         <Grid.ColumnDefinitions>
             <!-- 0: Left Expandable Purple Navigation Rail -->
             <ColumnDefinition Width="{Binding SidebarWidth}" />
@@ -81,18 +81,32 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <!-- Left Active Indicator Bar -->
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=0}" />
-                                <!-- Vector Icon -->
-                                <Path Grid.Column="0" Data="{StaticResource GeoDashboard}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
-                                <!-- Expanded Label -->
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=0}" />
+                                    <Path Data="{StaticResource GeoDashboard}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="TotalActiveAlarmsCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding TotalActiveAlarmsCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Tổng Quan (F1)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <!-- Badge -->
-                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,4,0" VerticalAlignment="Center"
-                                        Visibility="{Binding TotalActiveAlarmsCount, Converter={StaticResource PositiveCountToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding TotalActiveAlarmsCount}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="TotalActiveAlarmsCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding TotalActiveAlarmsCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -108,14 +122,32 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=1}" />
-                                <Path Grid.Column="0" Data="{StaticResource GeoLanNetwork}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=1}" />
+                                    <Path Data="{StaticResource GeoLanNetwork}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="LanAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding LanAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Mạng LAN &amp; Tel (F2)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,4,0" VerticalAlignment="Center"
-                                        Visibility="{Binding LanAlarmCount, Converter={StaticResource PositiveCountToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding LanAlarmCount}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="LanAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding LanAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -131,14 +163,32 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=2}" />
-                                <Path Grid.Column="0" Data="{StaticResource GeoPublicAddress}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=2}" />
+                                    <Path Data="{StaticResource GeoPublicAddress}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="PaAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding PaAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Âm Thanh PA (F3)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,4,0" VerticalAlignment="Center"
-                                        Visibility="{Binding PaAlarmCount, Converter={StaticResource PositiveCountToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding PaAlarmCount}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="PaAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding PaAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -154,14 +204,32 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=3}" />
-                                <Path Grid.Column="0" Data="{StaticResource GeoCctvCamera}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=3}" />
+                                    <Path Data="{StaticResource GeoCctvCamera}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="CctvAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding CctvAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Camera CCTV (F4)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,4,0" VerticalAlignment="Center"
-                                        Visibility="{Binding CctvAlarmCount, Converter={StaticResource PositiveCountToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding CctvAlarmCount}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="CctvAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding CctvAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -177,14 +245,32 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=4}" />
-                                <Path Grid.Column="0" Data="{StaticResource GeoAccessControl}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=4}" />
+                                    <Path Data="{StaticResource GeoAccessControl}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="AccessAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding AccessAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Access Control (F6)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,4,0" VerticalAlignment="Center"
-                                        Visibility="{Binding AccessAlarmCount, Converter={StaticResource PositiveCountToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding AccessAlarmCount}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="AccessAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding AccessAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -200,14 +286,32 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=5}" />
-                                <Path Grid.Column="0" Data="{StaticResource GeoBmsEngine}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=5}" />
+                                    <Path Data="{StaticResource GeoBmsEngine}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="BmsAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding BmsAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Cơ Điện BMS (F7)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,4,0" VerticalAlignment="Center"
-                                        Visibility="{Binding BmsAlarmCount, Converter={StaticResource PositiveCountToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding BmsAlarmCount}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="BmsAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding BmsAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -223,14 +327,32 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=6}" />
-                                <Path Grid.Column="0" Data="{StaticResource GeoFireAlarm}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=6}" />
+                                    <Path Data="{StaticResource GeoFireAlarm}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Border Background="#EF4444" CornerRadius="6" MinWidth="14" Height="13" Padding="2,0" 
+                                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,3,4,0">
+                                        <Border.Visibility>
+                                            <MultiBinding Converter="{StaticResource CollapsedBadgeVisibilityConverter}">
+                                                <Binding Path="IsSidebarExpanded" />
+                                                <Binding Path="FireAlarmCount" />
+                                            </MultiBinding>
+                                        </Border.Visibility>
+                                        <TextBlock Text="{Binding FireAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" 
+                                                   FontSize="8" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Báo Cháy PCCC (F8)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,4,0" VerticalAlignment="Center"
-                                        Visibility="{Binding FireAlarmCount, Converter={StaticResource PositiveCountToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding FireAlarmCount}" FontSize="10" FontWeight="Bold" Foreground="White" />
+                                <Border Grid.Column="2" Background="#EF4444" CornerRadius="10" Padding="6,1" Margin="4,0,8,0" VerticalAlignment="Center">
+                                    <Border.Visibility>
+                                        <MultiBinding Converter="{StaticResource ExpandedBadgeVisibilityConverter}">
+                                            <Binding Path="IsSidebarExpanded" />
+                                            <Binding Path="FireAlarmCount" />
+                                        </MultiBinding>
+                                    </Border.Visibility>
+                                    <TextBlock Text="{Binding FireAlarmCount, Converter={StaticResource CountToBadgeStringConverter}}" FontSize="10" FontWeight="Bold" Foreground="White" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -244,11 +366,12 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0" Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" CornerRadius="2"
-                                        Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=7}" />
-                                <Path Grid.Column="0" Data="{StaticResource GeoSimulationFlask}" Fill="White" Width="18" Height="18" Stretch="Uniform" Margin="8,0,8,0" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="44" Height="36">
+                                    <Border Width="3.5" Height="22" Background="#FAF5FF" HorizontalAlignment="Left" VerticalAlignment="Center" CornerRadius="2"
+                                            Visibility="{Binding SelectedTabIndex, Converter={StaticResource TabSelectedToVisibilityConverter}, ConverterParameter=7}" />
+                                    <Path Data="{StaticResource GeoSimulationFlask}" Fill="White" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Grid>
                                 <TextBlock Grid.Column="1" Text="Mô Phỏng Sự Cố (F9)" FontSize="12.5" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center" Margin="4,0,0,0"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVisibilityConverter}}" />
                             </Grid>
@@ -276,7 +399,7 @@
             <!-- ========================================== -->
             <!-- ROW 0: TOP WHITE APP BAR                   -->
             <!-- ========================================== -->
-            <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="16,0">
+            <Border Grid.Row="0" Background="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderThemeBgConverter}}" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="16,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <!-- Left: Title & Hamburger -->
@@ -289,7 +412,8 @@
 
                     <!-- Left: Title -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding CurrentTabTitle}" FontWeight="Bold" FontSize="18" Foreground="#0F172A" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding CurrentTabTitle}" FontWeight="Bold" FontSize="18" 
+                                   Foreground="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderTextColorConverter}}" VerticalAlignment="Center" />
                         <!-- Telemetry Heartbeat Pill (Real-Time Live Signal) -->
                         <Border Background="#ECFDF5" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="12" Padding="8,3" Margin="14,0,0,0" VerticalAlignment="Center">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -301,66 +425,93 @@
                         </Border>
                     </StackPanel>
 
-                    <!-- Center: KPI Summary Metrics -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <!-- Total Devices -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Tổng: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalDevices}" FontWeight="Bold" Foreground="#1E293B" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
+                    <!-- Center: Sleek Consolidated KPI Capsule (Responsive for 1100px - 1366px) -->
+                    <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="14" Padding="12,4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Total -->
+                            <TextBlock Text="Tổng: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalDevices}" FontWeight="Bold" Foreground="#1E293B" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
 
-                        <!-- Online -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="7" Height="7" Fill="#10B981" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Online: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalOnline}" FontWeight="Bold" Foreground="#10B981" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
 
-                        <!-- Warning -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="7" Height="7" Fill="#F59E0B" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Cảnh báo: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalWarning}" FontWeight="Bold" Foreground="#F59E0B" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
+                            <!-- Online -->
+                            <Ellipse Width="6" Height="6" Fill="#10B981" Margin="0,0,4,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Online: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalOnline}" FontWeight="Bold" Foreground="#10B981" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
 
-                        <!-- Critical -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="7" Height="7" Fill="#EF4444" Margin="0,0,5,0" VerticalAlignment="Center" />
-                                <TextBlock Text="Nguy cấp: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.TotalCritical}" FontWeight="Bold" Foreground="#EF4444" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
 
-                        <!-- Uptime % -->
-                        <Border Style="{StaticResource KpiCardStyle}" Padding="10,5">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Uptime: " Foreground="#64748B" FontSize="11.5" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding OverallSummary.OverallUptimePercent, StringFormat={}{0:F1}%}" FontWeight="Bold" Foreground="#6B21A8" FontSize="12.5" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
+                            <!-- Warning -->
+                            <Ellipse Width="6" Height="6" Fill="#F59E0B" Margin="0,0,4,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Cảnh báo: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalWarning}" FontWeight="Bold" Foreground="#F59E0B" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
 
-                    <!-- Right: Tool Actions (Fullscreen Kiosk, Mute, Refresh F5, Live Clock) -->
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                            <!-- Critical -->
+                            <Ellipse Width="6" Height="6" Fill="#EF4444" Margin="0,0,4,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Nguy cấp: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.TotalCritical}" FontWeight="Bold" Foreground="#EF4444" FontSize="11.5" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                            <Rectangle Width="1" Height="14" Fill="#CBD5E1" Margin="0,0,10,0" VerticalAlignment="Center" />
+
+                            <!-- Uptime -->
+                            <TextBlock Text="Uptime: " Foreground="#64748B" FontSize="11" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OverallSummary.OverallUptimePercent, StringFormat={}{0:F1}%}" FontWeight="Bold" Foreground="#6B21A8" FontSize="11.5" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Right: Tool Actions (Night Mode, Fullscreen Kiosk, Mute, Refresh F5, Live Clock) -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Fullscreen Kiosk Mode Toggle (F11) -->
-                        <Button Command="{Binding ToggleKioskModeCommand}" 
+                        <!-- Night Shift / Dark Mode Toggle Button (Issue 7) -->
+                        <Button Command="{Binding ToggleDarkModeCommand}" 
                                 Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1"
-                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand" ToolTip="Toàn Màn Hình / Video Wall (F11)">
-                            <Path Data="{StaticResource GeoFullscreen}" Fill="#475569" Width="14" Height="14" Stretch="Uniform" />
+                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand"
+                                ToolTip="Chế Độ Ca Trực Đêm / Giảm Chói Mắt">
+                            <Grid>
+                                <Path Data="{StaticResource GeoMoon}" Fill="#475569" Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsDarkMode, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Path Data="{StaticResource GeoSun}" Fill="#F59E0B" Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsDarkMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
                         </Button>
 
-                        <!-- Mute / Unmute Audio Toggle -->
+                        <!-- Fullscreen Kiosk Mode Toggle (F11) (Issue 3) -->
+                        <Button Command="{Binding ToggleKioskModeCommand}" 
+                                Background="{Binding IsKioskMode, Converter={StaticResource BoolToKioskBgConverter}}"
+                                BorderBrush="{Binding IsKioskMode, Converter={StaticResource BoolToKioskBorderConverter}}"
+                                BorderThickness="1"
+                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand"
+                                ToolTip="{Binding IsKioskMode, Converter={StaticResource BoolToKioskTooltipConverter}}">
+                            <Grid>
+                                <Path Data="{StaticResource GeoFullscreen}" 
+                                      Fill="{Binding IsKioskMode, Converter={StaticResource BoolToKioskIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsKioskMode, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Path Data="{StaticResource GeoFullscreenExit}" 
+                                      Fill="{Binding IsKioskMode, Converter={StaticResource BoolToKioskIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsKioskMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
+                        </Button>
+
+                        <!-- Mute / Unmute Audio Toggle (Issue 3) -->
                         <Button Command="{Binding ToggleMuteCommand}" 
-                                Background="#F8FAFC" BorderBrush="#CBD5E1" BorderThickness="1"
-                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand" ToolTip="Bật / Tắt Còi Cảnh Báo Âm Thanh">
-                            <Path Data="{StaticResource GeoVolumeHigh}" Fill="#475569" Width="14" Height="14" Stretch="Uniform" />
+                                Background="{Binding IsMuted, Converter={StaticResource BoolToMuteBgConverter}}"
+                                BorderBrush="{Binding IsMuted, Converter={StaticResource BoolToMuteBorderConverter}}"
+                                BorderThickness="1"
+                                Padding="8,6" Margin="0,0,6,0" Cursor="Hand"
+                                ToolTip="{Binding IsMuted, Converter={StaticResource BoolToMuteTooltipConverter}}">
+                            <Grid>
+                                <Path Data="{StaticResource GeoVolumeHigh}" 
+                                      Fill="{Binding IsMuted, Converter={StaticResource BoolToMuteIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsMuted, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Path Data="{StaticResource GeoVolumeMute}" 
+                                      Fill="{Binding IsMuted, Converter={StaticResource BoolToMuteIconBrushConverter}}" 
+                                      Width="14" Height="14" Stretch="Uniform"
+                                      Visibility="{Binding IsMuted, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
                         </Button>
 
                         <!-- Refresh Data Button (F5) -->
@@ -537,16 +688,16 @@
                                             <!-- Incident Title -->
                                             <DataGridTextColumn Header="Nội Dung Sự Cố" Binding="{Binding Title}" Width="*" />
 
-                                            <!-- Triage Status Pill -->
+                                            <!-- Triage Status Pill (Issue 1 Fix: Explicit High Contrast Status & Colors) -->
                                             <DataGridTemplateColumn Header="Trạng Thái" Width="110">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <Border Background="{Binding IsAcknowledged, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=True, FallbackValue='#FEE2E2'}"
-                                                                BorderBrush="{Binding IsAcknowledged, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=True, FallbackValue='#EF4444'}"
+                                                        <Border Background="{Binding IsAcknowledged, Converter={StaticResource AckStatusToBackgroundBrushConverter}}"
+                                                                BorderBrush="{Binding IsAcknowledged, Converter={StaticResource AckStatusToBorderBrushConverter}}"
                                                                 BorderThickness="1" CornerRadius="3" Padding="6,2" HorizontalAlignment="Left">
-                                                            <TextBlock Text="{Binding IsAcknowledged, Converter={StaticResource BoolToStatusTextConverter}}"
+                                                            <TextBlock Text="{Binding IsAcknowledged, Converter={StaticResource BoolToStatusTextConverter}, ConverterParameter='ĐÃ TIẾP NHẬN|CHƯA TIẾP NHẬN'}"
                                                                        FontSize="10" FontWeight="SemiBold"
-                                                                       Foreground="{Binding IsAcknowledged, Converter={StaticResource TabSelectedToBrushConverter}, ConverterParameter=True, FallbackValue='#991B1B'}" />
+                                                                       Foreground="{Binding IsAcknowledged, Converter={StaticResource AckStatusToTextBrushConverter}}" />
                                                         </Border>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
@@ -3689,9 +3840,9 @@
         </TabControl>
 
         <!-- ========================================== -->
-        <!-- ROW 3: BOTTOM WHITE FOOTER STATUS BAR      -->
+        <!-- ROW 3: BOTTOM FOOTER STATUS BAR            -->
         <!-- ========================================== -->
-        <Border Grid.Row="3" Background="#FFFFFF" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,0">
+        <Border Grid.Row="3" Background="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderThemeBgConverter}}" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="16,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -3702,11 +3853,12 @@
                 <TextBlock Grid.Column="0" Text="IOC Enterprise v1.0" FontSize="11.5" Foreground="#64748B" VerticalAlignment="Center" />
 
                 <TextBlock Grid.Column="1" Text="TRUNG TÂM GIÁM SÁT &amp; ĐIỀU HÀNH TÒA NHÀ THÔNG MINH" 
-                           HorizontalAlignment="Center" FontSize="11.5" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center" />
+                           HorizontalAlignment="Center" FontSize="11.5" FontWeight="SemiBold" 
+                           Foreground="{Binding IsDarkMode, Converter={StaticResource BoolToHeaderTextColorConverter}}" VerticalAlignment="Center" />
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="7" Height="7" Fill="#10B981" Margin="0,0,6,0" VerticalAlignment="Center" />
-                    <TextBlock Text="Trực Tuyến 100% | Latency &lt; 1ms" FontSize="11.5" FontWeight="SemiBold" Foreground="#10B981" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding TelemetryFooterStatus}" FontSize="11.5" FontWeight="SemiBold" Foreground="#10B981" VerticalAlignment="Center" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -3722,7 +3874,7 @@
 
         <!-- Floating Danger Card Dialog -->
         <Border Width="520" VerticalAlignment="Center" HorizontalAlignment="Center"
-                Background="#FFFFFF" CornerRadius="12" BorderBrush="#DC2626" BorderThickness="2"
+                Background="#FFFFFF" CornerRadius="8" BorderBrush="#DC2626" BorderThickness="2"
                 Padding="24">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.35" Color="#000000" />
@@ -3743,9 +3895,33 @@
                 <TextBlock Text="{Binding ConfirmModalMessage}" FontSize="13" Foreground="#1E293B" TextWrapping="Wrap" Margin="0,0,0,12" />
 
                 <!-- Explicit Danger Warning Box -->
-                <Border Background="#FEF2F2" BorderBrush="#FCA5A5" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,20">
+                <Border Background="#FEF2F2" BorderBrush="#FCA5A5" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,14">
                     <TextBlock Text="{Binding ConfirmModalWarning}" FontSize="12" Foreground="#B91C1C" FontWeight="SemiBold" TextWrapping="Wrap" />
                 </Border>
+
+                <!-- Operator Identity and Audit Box (Issue 6) -->
+                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="CÁN BỘ VẬN HÀNH CHỊU TRÁCH NHIỆM" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
+                            <TextBlock Text="{Binding OperatorIdentity}" FontSize="11.5" FontWeight="SemiBold" Foreground="#1E293B" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                            <TextBlock Text="THỜI ĐIỂM YÊU CẦU" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Right" />
+                            <TextBlock Text="{Binding ConfirmationTimestamp}" FontFamily="Consolas" FontSize="11" Foreground="#475569" Margin="0,2,0,0" HorizontalAlignment="Right" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Mandatory 2-Step Checkbox -->
+                <CheckBox IsChecked="{Binding IsConfirmedByOperator}" Margin="0,0,0,18" VerticalAlignment="Center">
+                    <TextBlock Text="Tôi đã xác minh hiện trường và chịu hoàn toàn trách nhiệm khi thực thi lệnh này." 
+                               FontSize="11.5" FontWeight="SemiBold" Foreground="#991B1B" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </CheckBox>
 
                 <!-- Confirmation Buttons -->
                 <Grid>
@@ -3764,6 +3940,7 @@
 
                     <!-- Confirm Destructive Action Button -->
                     <Button Grid.Column="2" Command="{Binding ExecuteConfirmedActionCommand}"
+                            IsEnabled="{Binding IsConfirmedByOperator}"
                             Background="#DC2626" Foreground="White" BorderThickness="0"
                             Padding="14,10" FontSize="13" FontWeight="Bold">
                         <TextBlock Text="{Binding ConfirmModalActionText}" />
