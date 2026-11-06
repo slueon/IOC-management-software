@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Threading;
 using IOC.App.ViewModels;
 using IOC.Infrastructure.Services;
+using IOC.Infrastructure.Session;
 
 namespace IOC.App;
 
@@ -10,7 +11,7 @@ public partial class App : Application
 {
     private static readonly string CrashLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ioc_crash.log");
 
-    protected override async void OnStartup(StartupEventArgs e)
+    protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -20,11 +21,17 @@ public partial class App : Application
 
         ShutdownMode = ShutdownMode.OnMainWindowClose;
 
+        _ = InitializeApplicationAsync();
+    }
+
+    private async Task InitializeApplicationAsync()
+    {
         try
         {
             var evaluator = new SubsystemHealthEvaluator();
             var monitoringService = new SubsystemHealthMonitoringService(evaluator);
-            var mainViewModel = new MainViewModel(monitoringService);
+            var sessionService = new OperatorSessionService();
+            var mainViewModel = new MainViewModel(monitoringService, sessionService);
 
             var mainWindow = new MainWindow
             {

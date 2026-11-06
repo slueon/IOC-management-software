@@ -298,3 +298,32 @@ Hiện thực hóa Module 1 theo tài liệu `Danh_sach_tinh_nang_phan_mem_IOC.d
     * `dotnet test`: Vượt qua **97/97 Unit Tests** (100% pass, 0 regression, bổ sung `UiConverterTests.cs`).
     * `dotnet build -warnaserror`: **0 Warning, 0 Error**.
     * `dotnet publish`: Đã đóng gói thành công bản dựng Release tại `bin/publish/IOC.App.exe`.
+
+- [x] **Task 19: Triển Khai 6 Hạng Mục Cải Thiện Toàn Diện (Architecture Hardening, Device Adapters, Concurrency, Persistence, CI/CD & Testing)**
+  - [x] 19.1 [README & KIẾN TRÚC THẬT]: Cập nhật `README.md` khớp 100% với kiến trúc mã nguồn Clean Architecture 3 tầng thực tế, tài liệu hóa đầy đủ các Adapter giao thức, bộ lưu trữ nguyên tử, quy chuẩn vận hành và hướng dẫn CI/CD.
+  - [x] 19.2 [DEVICE ADAPTERS ABSTRACTION]:
+    * Xây dựng tầng Abstraction chuẩn `IDeviceAdapter<TDevice, TTelemetry>` với `AdapterRetryPolicy`, `AdapterPollResult`, `DeviceHealthState`.
+    * Triển khai cụ thể các Adapter phần cứng: `PingDeviceAdapter`, `SnmpDeviceAdapter`, `ModbusDeviceAdapter`, `CameraNvrAdapter`, `FireAlarmPanelAdapter`, `AccessControlAdapter`.
+    * Tích hợp xử lý Timeout với Linked CancellationToken, Retry Backoff tự động và phân loại trạng thái thiết bị (`Online`, `Warning`, `Critical`, `Offline`, `Timeout`).
+  - [x] 19.3 [CONCURRENCY & ASYNC TASK]:
+    * Triệt tiêu hoàn toàn `async void` trên toàn bộ giải pháp: chuẩn hóa `App.xaml.cs` (chuyển `OnStartup` thành synchronous và đóng gói async trong `InitializeApplicationAsync()`) và `MainViewModel.cs` (`UpdateTopAlertAsync()` trả về `Task`).
+    * Chống Refresh đồng thời: Tích hợp `SemaphoreSlim(1, 1)` tại `RefreshAllAsync()`, chặn đứng hiện tượng race-condition khi người dùng spam phím F5 hoặc kích hoạt nhiều trigger cùng lúc.
+    * Xử lý ngoại lệ tại biên (Boundary Exception Handling): bao bọc try-catch toàn bộ tác vụ ngoại vi, ghi nhật ký lỗi chi tiết và cập nhật thanh Telemetry thay vì làm sập ứng dụng.
+  - [x] 19.4 [PERSISTENCE & DYNAMIC OPERATOR SESSION]:
+    * Bổ sung dịch vụ lưu trữ nguyên tử `JsonIocStorageService`: tự động ghi ra tệp tạm `.tmp` rồi hoán đổi nguyên tử (`File.Replace`/`File.Move`), chống hỏng tệp khi mất nguồn đột ngột, có cơ chế bắt lỗi JSON Exception để tự phục hồi trạng thái an toàn.
+    * Triển khai ghi lưu và truy vấn `AuditLogEntry`, `IncidentAcknowledgementRecord`, và danh sách sự cố kích hoạt.
+    * Triệt tiêu hard-code cán bộ trực ban: xây dựng `OperatorSessionService` quản lý danh tính động (`OP-8821`, `OP-8822`, `OP-8823`, `ADMIN-01`), tự động cập nhật thẻ tên trực ban và đóng dấu người thực hiện vào nhật ký kiểm toán.
+    * Khử trùng lặp sự cố (Duplicate Incident Suppression): khi cùng 1 lỗi phần cứng kích hoạt nhiều lần, hệ thống cập nhật mốc thời gian của sự cố hiện có thay vì sinh các bản ghi rác.
+  - [x] 19.5 [GITHUB ACTIONS CI/CD PIPELINE]:
+    * Thiết lập `.github/workflows/ci.yml` tự động kích hoạt trên các nhánh `main` và `develop`.
+    * Cấu hình môi trường Windows Server với .NET 8 SDK, thực hiện chuỗi kiểm chuẩn: `dotnet restore` $\rightarrow$ `dotnet build -warnaserror` $\rightarrow$ `dotnet test --collect:"XPlat Code Coverage"` $\rightarrow$ upload artifact kết quả kiểm thử.
+  - [x] 19.6 [TOÀN DIỆN HÓA KIỂM THỬ TỰ ĐỘNG - 117 TESTS]:
+    * `ConcurrencyAndRefreshTests.cs`: Kiểm tra 20+ tác vụ đồng thời gọi refresh và 25+ tác vụ đồng thời kích hoạt lỗi.
+    * `DeviceAdapterTests.cs`: Kiểm tra 6 loại Adapter, chính sách Timeout, Retry và Cancellation Token.
+    * `StoragePersistenceTests.cs`: Kiểm tra lưu/đọc dữ liệu, thứ tự nhật ký kiểm toán và khả năng tự phục hồi khi tệp JSON bị hỏng.
+    * `IncidentLifecycleAndSuppressionTests.cs`: Kiểm tra chặn trùng lặp lỗi và vòng đời sự cố (New $\rightarrow$ ACK $\rightarrow$ Resolve).
+    * `StartupFailureAndOperatorSessionTests.cs`: Kiểm tra khởi động khi tệp cấu hình lỗi và chuyển đổi cán bộ trực ban.
+  - [x] 19.7 [DETERMINISTIC VERIFIER GATE]:
+    * `dotnet test`: Vượt qua **117/117 Tests** (100% pass, 0 regression).
+    * `dotnet build -warnaserror`: **0 Warning, 0 Error**.
+    * `dotnet publish`: Cập nhật bản Release độc lập hoàn thiện tại `bin/publish/IOC.App.exe`.

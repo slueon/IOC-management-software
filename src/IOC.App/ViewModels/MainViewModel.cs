@@ -2,6 +2,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IOC.App.ViewModels.Base;
+using IOC.Core.Contracts.Session;
 using IOC.Core.Enums;
 using IOC.Core.Interfaces;
 using IOC.Core.Models.Base;
@@ -11,7 +12,9 @@ namespace IOC.App.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     private readonly ISubsystemHealthMonitoringService _monitoringService;
+    private readonly IOperatorSessionService _sessionService;
     private readonly DispatcherTimer? _clockTimer;
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentTabTitle))]
@@ -136,10 +139,20 @@ public partial class MainViewModel : ViewModelBase
     private bool _isConfirmedByOperator;
 
     [ObservableProperty]
-    private string _operatorIdentity = "Trực Ban IOC: Nguyễn Văn An (Mã: OP-8821)";
+    private string _operatorIdentity = string.Empty;
 
     [ObservableProperty]
     private string _confirmationTimestamp = string.Empty;
+
+    public IOperatorSessionService SessionService => _sessionService;
+    public OperatorProfile CurrentOperator => _sessionService.CurrentOperator;
+    public IReadOnlyList<OperatorProfile> AvailableOperators => _sessionService.AvailableOperators;
+
+    [RelayCommand]
+    public void SwitchOperator(string operatorId)
+    {
+        _sessionService.SetCurrentOperator(operatorId);
+    }
 
     private Func<Task>? _pendingDangerousAction;
 
@@ -167,8 +180,15 @@ public partial class MainViewModel : ViewModelBase
         {
             var act = _pendingDangerousAction;
             _pendingDangerousAction = null;
-            await act();
-            await RefreshAllAsync();
+            try
+            {
+                await act();
+                await RefreshAllAsync();
+            }
+            catch (Exception ex)
+            {
+                TelemetryFooterStatus = $"Lỗi thực thi: {ex.Message}";
+            }
         }
     }
 
@@ -204,9 +224,13 @@ public partial class MainViewModel : ViewModelBase
     public FireAlarmTabViewModel FireAlarmTab { get; }
     public SimulationTabViewModel SimulationTab { get; }
 
-    public MainViewModel(ISubsystemHealthMonitoringService monitoringService)
+    public MainViewModel(ISubsystemHealthMonitoringService monitoringService, IOperatorSessionService? sessionService = null)
     {
         _monitoringService = monitoringService;
+        _sessionService = sessionService ?? new IOC.Infrastructure.Session.OperatorSessionService();
+
+        OperatorIdentity = _sessionService.CurrentOperator.FormattedBadge;
+        _sessionService.CurrentOperatorChanged += OnOperatorChanged;
 
         OverviewTab = new OverviewTabViewModel(_monitoringService, NavigateToTab);
         LanTelTab = new LanTelTabViewModel(_monitoringService);
@@ -233,6 +257,12 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    private void OnOperatorChanged(OperatorProfile profile)
+    {
+        OperatorIdentity = profile.FormattedBadge;
+        OnPropertyChanged(nameof(CurrentOperator));
+    }
+
     public async Task InitializeAsync()
     {
         await _monitoringService.InitializeAsync();
@@ -249,7 +279,7 @@ public partial class MainViewModel : ViewModelBase
         void Update()
         {
             OverallSummary = summary;
-            UpdateTopAlert();
+            _ = UpdateTopAlertAsync();
         }
 
         if (System.Windows.Application.Current?.Dispatcher is Dispatcher dispatcher && !dispatcher.CheckAccess())
@@ -266,7 +296,7 @@ public partial class MainViewModel : ViewModelBase
     {
         void Update()
         {
-            UpdateTopAlert();
+            _ = UpdateTopAlertAsync();
         }
 
         if (System.Windows.Application.Current?.Dispatcher is Dispatcher dispatcher && !dispatcher.CheckAccess())
@@ -279,7 +309,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private async void UpdateTopAlert()
+    public async Task UpdateTopAlertAsync()
     {
         var incidents = await _monitoringService.GetActiveIncidentsAsync();
         TopActiveAlert = incidents.FirstOrDefault(i => !i.IsAcknowledged);
@@ -322,9 +352,14 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public async Task RefreshAllAsync()
     {
-        IsRefreshing = true;
+        if (!await _refreshLock.WaitAsync(0))
+        {
+            return;
+        }
+
         try
         {
+            IsRefreshing = true;
             await _monitoringService.RefreshAllAsync();
             OverallSummary = await _monitoringService.GetOverallSummaryAsync();
 
@@ -337,11 +372,16 @@ public partial class MainViewModel : ViewModelBase
             await FireAlarmTab.LoadDataAsync();
             await SimulationTab.RefreshSimulationStatusAsync();
 
-            UpdateTopAlert();
+            await UpdateTopAlertAsync();
+        }
+        catch (Exception ex)
+        {
+            TelemetryFooterStatus = $"Lỗi làm mới: {ex.Message}";
         }
         finally
         {
             IsRefreshing = false;
+            _refreshLock.Release();
         }
     }
 
@@ -356,7 +396,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (TopActiveAlert != null)
         {
-            await _monitoringService.AcknowledgeIncidentAsync(TopActiveAlert.Id, "Trực ban Vận hành");
+            await _monitoringService.AcknowledgeIncidentAsync(TopActiveAlert.Id, _sessionService.CurrentOperator.FullName);
             await RefreshAllAsync();
         }
     }
@@ -364,30 +404,36 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public async Task QuickSimulateScenarioAsync(string scenario)
     {
-        switch (scenario)
+        try
         {
-            case "FIRE_ALERT":
-                await _monitoringService.TriggerDiagnosticFaultAsync("FAS-PANEL-01", "FIRE_ALARM");
-                SelectedTabIndex = 6; // Chuyển sang Tab Báo cháy PCCC
-                break;
-            case "SWITCH_DOWN":
-                await _monitoringService.TriggerDiagnosticFaultAsync("SW-CORE-01", "PORT_DOWN");
-                SelectedTabIndex = 1; // Chuyển sang Tab Mạng LAN
-                break;
-            case "CHILLER_FAULT":
-                await _monitoringService.TriggerDiagnosticFaultAsync("BMS-CHILLER-01", "CHILLER_OVERHEAT");
-                SelectedTabIndex = 5; // Chuyển sang Tab BMS
-                break;
-            case "DOOR_FORCED":
-                await _monitoringService.TriggerDiagnosticFaultAsync("AC-CTRL-01", "DOOR_FORCED");
-                SelectedTabIndex = 4; // Chuyển sang Tab Access Control
-                break;
-            case "CLEAR_ALL":
-                await _monitoringService.TriggerDiagnosticFaultAsync("ALL", "CLEAR_ALL");
-                break;
-        }
+            switch (scenario)
+            {
+                case "FIRE_ALERT":
+                    await _monitoringService.TriggerDiagnosticFaultAsync("FAS-PANEL-01", "FIRE_ALARM");
+                    SelectedTabIndex = 6;
+                    break;
+                case "SWITCH_DOWN":
+                    await _monitoringService.TriggerDiagnosticFaultAsync("SW-CORE-01", "PORT_DOWN");
+                    SelectedTabIndex = 1;
+                    break;
+                case "CHILLER_FAULT":
+                    await _monitoringService.TriggerDiagnosticFaultAsync("BMS-CHILLER-01", "CHILLER_OVERHEAT");
+                    SelectedTabIndex = 5;
+                    break;
+                case "DOOR_FORCED":
+                    await _monitoringService.TriggerDiagnosticFaultAsync("AC-CTRL-01", "DOOR_FORCED");
+                    SelectedTabIndex = 4;
+                    break;
+                case "CLEAR_ALL":
+                    await _monitoringService.TriggerDiagnosticFaultAsync("ALL", "CLEAR_ALL");
+                    break;
+            }
 
-        await RefreshAllAsync();
+            await RefreshAllAsync();
+        }
+        catch (Exception ex)
+        {
+            TelemetryFooterStatus = $"Lỗi kịch bản: {ex.Message}";
+        }
     }
 }
-
